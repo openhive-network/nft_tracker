@@ -25,7 +25,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_prevent_creator_update
+CREATE OR REPLACE TRIGGER trg_prevent_creator_update
 BEFORE UPDATE OF creator ON nfttracker_app.types
 FOR EACH ROW
 EXECUTE FUNCTION nfttracker_app.prevent_creator_update();
@@ -37,7 +37,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_prevent_symbol_update
+CREATE OR REPLACE TRIGGER trg_prevent_symbol_update
 BEFORE UPDATE OF symbol ON nfttracker_app.types
 FOR EACH ROW
 EXECUTE FUNCTION nfttracker_app.prevent_symbol_update();
@@ -49,7 +49,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_prevent_increment_max_count
+CREATE OR REPLACE TRIGGER trg_prevent_increment_max_count
 BEFORE UPDATE OF max_count ON nfttracker_app.types
 FOR EACH ROW
 WHEN (NEW.max_count > OLD.max_count)
@@ -80,7 +80,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_prevent_soulbound_unset
+CREATE OR REPLACE TRIGGER trg_prevent_soulbound_unset
 BEFORE UPDATE OF soulbound ON nfttracker_app.instances
 FOR EACH ROW
 WHEN (OLD.soulbound = TRUE AND NEW.soulbound = FALSE)
