@@ -27,9 +27,9 @@ BEGIN
     j.max_count,
     b.created_at,
     b.created_at
-  FROM jsonb_to_record(_json) AS j
-  JOIN hive.blocks AS b ON b.num = _block_num
-  JOIN hive.accounts AS a ON a.name = j.owner;
+  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
+  JOIN hafd.blocks AS b ON b.num = _block_num
+  JOIN hafd.accounts AS a ON a.name = j.owner;
 END
 $$;
 
@@ -52,9 +52,9 @@ BEGIN
       owner = a.id,
       max_count = j.max_count,
       updated_at = b.created_at
-    FROM jsonb_to_record(_json) AS j
-    JOIN hive.blocks AS b ON b.num = _block_num
-    JOIN hive.accounts AS a ON a.name = j.owner
+    FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
+    JOIN hafd.blocks AS b ON b.num = _block_num
+    JOIN hafd.accounts AS a ON a.name = j.owner
     WHERE symbol = j.symbol
     RETURNING id
   ),
@@ -62,7 +62,7 @@ BEGIN
     INSERT INTO nfttracker_app.issuers (type_id, account_id)
     SELECT t.id, a.id
     FROM update_type AS t
-    JOIN hive.accounts AS a ON a.name = ANY(json->'issuers'::text[])
+    JOIN hafd.accounts AS a ON a.name = ANY(json->'issuers'::text[])
     ON CONFLICT (type_id, account_id) DO NOTHING
     RETURNING 1
   ),
@@ -103,9 +103,9 @@ BEGIN
     j.soulbound,
     b.created_at,
     b.created_at
-  FROM jsonb_to_record(_json) AS j
-  JOIN hive.blocks AS b ON b.num = _block_num
-  JOIN hive.accounts AS a ON a.name = j.holder;
+  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
+  JOIN hafd.blocks AS b ON b.num = _block_num
+  JOIN hafd.accounts AS a ON a.name = j.holder;
 END
 $$;
 
@@ -121,7 +121,7 @@ AS $$
 BEGIN
   UPDATE nfttracker_app.instances
   SET soulbound = j.soulbound
-  FROM jsonb_to_record(_json) AS j
+  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
   WHERE symbol = j.symbol AND id = j.id;
 END
 $$;
@@ -138,7 +138,7 @@ AS $$
 BEGIN
   UPDATE nfttracker_app.instances
   SET data = j.data
-  FROM jsonb_to_record(_json) AS j
+  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
   WHERE symbol = j.symbol AND id = j.id;
 END
 $$;
@@ -155,7 +155,7 @@ AS $$
 BEGIN
   UPDATE nfttracker_app.instances AS i
   SET holder = j.to
-  FROM jsonb_to_record(_json) AS j
+  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
   WHERE symbol = j.symbol AND id = j.id AND NOT i.soulbound;
 END
 $$;

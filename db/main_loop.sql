@@ -51,7 +51,7 @@ BEGIN
       SELECT
         o.block_num,
         o.body_binary::hive.custom_json_operation as op
-      FROM operations_view AS o WHERE o.op_type_id = 18
+      FROM hive.operations_view AS o WHERE o.op_type_id = 18
       AND o.block_num BETWEEN _first_block_num AND _last_block_num
     ) AS x
     WHERE (x.op).id = 'NFT'
