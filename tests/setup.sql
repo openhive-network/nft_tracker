@@ -2,7 +2,14 @@ BEGIN;
   INSERT INTO hafd.events_queue VALUES
     (0, 'NEW_IRREVERSIBLE', 0),
     (1, 'NEW_IRREVERSIBLE', 1),
-    (2, 'NEW_IRREVERSIBLE', 1);
+    (2, 'NEW_IRREVERSIBLE', 2),
+    (3, 'NEW_IRREVERSIBLE', 3),
+    (4, 'NEW_IRREVERSIBLE', 4),
+    (5, 'NEW_IRREVERSIBLE', 5),
+    (6, 'NEW_IRREVERSIBLE', 6),
+    (7, 'NEW_IRREVERSIBLE', 7),
+    (8, 'NEW_IRREVERSIBLE', 8),
+    (9, 'NEW_IRREVERSIBLE', 9);
   INSERT INTO hafd.fork VALUES (1, 1, now());
   INSERT INTO hafd.blocks VALUES
     (1, '\xBADD10', '\xCAFE10', '2016-06-22 19:10:21-07'::timestamp, 5, '\x4007', E'[]', '\x2157', 'STM65w', 1000, 1000, 1000000, 1000, 1000, 1000, 2000, 2000),

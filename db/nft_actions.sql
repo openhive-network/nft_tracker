@@ -46,7 +46,7 @@ DECLARE
   _count BIGINT;
 BEGIN
   WITH update_type AS (
-    UPDATE nfttracker_app.types
+    UPDATE nfttracker_app.types AS t
     SET
       name = j.name,
       owner = a.id,
@@ -55,24 +55,34 @@ BEGIN
     FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
     JOIN hafd.blocks AS b ON b.num = _block_num
     JOIN hafd.accounts AS a ON a.name = j.owner
-    WHERE symbol = j.symbol
-    RETURNING id
+    WHERE t.symbol = j.symbol
+    RETURNING t.id
+  ),
+  issuers AS (
+    SELECT j->>0 AS issuer FROM jsonb_array_elements(_json->'issuers') AS j
   ),
   insert_issuers AS (
-    INSERT INTO nfttracker_app.issuers (type_id, account_id)
+    INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)
     SELECT t.id, a.id
     FROM update_type AS t
-    JOIN hafd.accounts AS a ON a.name = ANY(json->'issuers'::text[])
+    JOIN hafd.accounts AS a ON a.name = ANY(SELECT issuer FROM issuers)
     ON CONFLICT (type_id, account_id) DO NOTHING
     RETURNING 1
   ),
   delete_issuers AS (
-    DELETE FROM nfttracker_app.issuers
-    USING insert_issuers
-    WHERE symbol = _json->>'symbol' AND account_id not in (json->'issuers')::text[]
+    DELETE FROM nfttracker_app.authorized_issuers AS ai
+    WHERE ai.type_id IN (SELECT id FROM update_type) AND ai.account_id NOT IN (
+      SELECT a.id
+      FROM issuers AS j
+      JOIN hafd.accounts AS a ON a.name = j.issuer
+    )
     RETURNING 1
   )
-  SELECT COUNT(*) INTO _count FROM delete_issuers;
+  SELECT COUNT(*) INTO _count FROM (
+    SELECT * FROM insert_issuers
+    UNION ALL
+    SELECT * FROM delete_issuers
+  ) AS y;
 END
 $$;
 

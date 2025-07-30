@@ -15,6 +15,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE test_then()
 AS $$
 BEGIN
-    ASSERT (SELECT (creator, owner, symbol::text, name::text, max_count) FROM nfttracker_app.types) = (SELECT (6, 6, 'ABC'::text, 'test'::text, 12));
+    ASSERT (SELECT (creator, owner, symbol::text, name::text, max_count) FROM types_view) = (SELECT (6, 6, 'ABC'::text, 'test'::text, 12));
+    ASSERT (SELECT ALL(updated_at = created_at) FROM types_view);
 END;
 $$ LANGUAGE plpgsql;
