@@ -10,7 +10,7 @@ run_test() {
     ./haf/scripts/setup_db.sh --haf-db-name="$DB_NAME"
     _psql -d "$DB_NAME" -f tests/setup.sql
     _psql -d "$DB_NAME" -f db/schema.sql -f db/builtin_roles.sql -f db/nft_actions.sql -f db/main_loop.sql
-    _psql -d "$DB_NAME" -f "tests/functions.sql" -f "tests/$TEST.sql" -c 'CALL test_given()' -c 'CALL test_when()' -c 'CALL test_then()'
+    _psql -d "$DB_NAME" -f "tests/prelude.sql" -f "tests/$TEST.sql" -c 'CALL test_given()' -c 'CALL test_when()' -c 'CALL test_then()'
 }
 
 set -e
