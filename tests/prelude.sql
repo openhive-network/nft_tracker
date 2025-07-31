@@ -34,6 +34,20 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, holder hive.account_name_type, data jsonb, tags nfttracker_app.tags, souldbound bool)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    CALL insert_custom_json_operation(block_num, auth, 'NFT', format('{"action": "issue", "symbol": %s, "holder": %s, "data": %s, "soulbound": %s, "tags": %s}',
+        to_jsonb(symbol)::text,
+        to_jsonb(holder)::text,
+        to_jsonb(data)::text,
+        to_jsonb(souldbound)::text,
+        to_jsonb(tags)::text
+    )::jsonb);
+END;
+$$;
+
 CREATE OR REPLACE VIEW types_view AS
 SELECT
     t.id,
@@ -50,3 +64,19 @@ LEFT JOIN nfttracker_app.authorized_issuers AS ai ON t.id = ai.type_id
 LEFT JOIN hafd.accounts AS a ON ai.account_id = a.id
 GROUP BY t.id, t.creator, t.owner, t.symbol, t.name, t.max_count, t.created_at, t.updated_at;
 
+CREATE OR REPLACE VIEW instances_view AS
+SELECT
+    i.id,
+    i.holder,
+    i.data,
+    i.tags,
+    i.soulbound,
+    i.created_at,
+    i.updated_at,
+    t.creator,
+    t.owner,
+    t.symbol,
+    t.name,
+    t.max_count
+FROM nfttracker_app.instances AS i
+INNER JOIN nfttracker_app.types AS t ON i.type_id = t.id;

@@ -106,14 +106,15 @@ BEGIN
     updated_at
   )
   SELECT
-    j.type_id,
+    t.id,
     a.id,
     j.data,
     j.tags,
     j.soulbound,
     b.created_at,
     b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
+  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type)
+  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j.holder;
 END
