@@ -1,0 +1,37 @@
+CREATE DATABASE
+-- Check that issuing an instance of registered NFT type works correctly
+-- Given
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', name=>'test', symbol=>'ABC', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'ABC', holder=>'bob', data=>'{"foo": "bar"}', tags=>ARRAY['xyz']::nfttracker_app.tags, souldbound=>FALSE);
+-- When
+CALL nfttracker_app.main('nfttracker_app', 2);
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  Processing NFT action: register at block 1
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+NOTICE:  Processing NFT action: issue at block 2
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
+-- Then
+SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
+ creator | owner | symbol | holder |      data      | tags  | soulbound 
+---------+-------+--------+--------+----------------+-------+-----------
+       6 |     6 | ABC    |      7 | {"foo": "bar"} | {xyz} | f
+(1 row)
+
+SELECT ALL(updated_at = created_at) FROM instances_view;
+ ?column? 
+----------
+ t
+(1 row)
+
+DROP DATABASE
