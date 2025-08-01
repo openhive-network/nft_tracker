@@ -72,6 +72,18 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, id INT, to_account hive.account_name_type)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    CALL insert_custom_json_operation(block_num, auth, 'NFT', format('{"action": "transfer", "symbol": %s, "id": %s, "to": %s}',
+        to_jsonb(symbol)::text,
+        to_jsonb(id)::text,
+        to_jsonb(to_account)::text
+    )::jsonb);
+END;
+$$;
+
 CREATE OR REPLACE VIEW types_view AS
 SELECT
     t.id,
