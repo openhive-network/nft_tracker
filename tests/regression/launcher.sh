@@ -19,7 +19,11 @@ cleanup() {
 }
 
 quiet() {
-    "$@" >/dev/null 2>&1
+    if [ "$VERBOSE" = "1" ]; then
+        "$@"
+    else
+        "$@" >/dev/null 2>&1
+    fi
 }
 
 trap cleanup EXIT
