@@ -23,16 +23,16 @@ quiet() {
 }
 
 cleanup() {
-    _psql -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME}"
+    quiet _psql -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME}"
 }
 
 if [ "$KEEP_DB" != "1" ]; then
     trap cleanup EXIT
 fi
 
-quiet cleanup
+cleanup
 
-_psql -d postgres -c "CREATE DATABASE ${DB_NAME}"
+quiet _psql -d postgres -c "CREATE DATABASE ${DB_NAME}"
 
 quiet "$SETUP_SCRIPT" \
     --haf-db-name="$DB_NAME" \

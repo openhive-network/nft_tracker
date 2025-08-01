@@ -1,4 +1,3 @@
-CREATE DATABASE
 -- Check that issuing an instance of registered NFT type works correctly
 -- Given
 CALL insert_nft_register_op(block_num=>1, auth=>'alice', name=>'test', symbol=>'ABC', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
@@ -32,4 +31,3 @@ SELECT ALL(updated_at = created_at) FROM instances_view;
  t
 (1 row)
 
-DROP DATABASE
