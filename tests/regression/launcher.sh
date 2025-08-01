@@ -15,7 +15,9 @@ _psql() {
 }
 
 cleanup() {
-    _psql -d postgres -c "DROP DATABASE ${DB_NAME}"
+    if [ "$KEEP_DB" != "1" ]; then
+        _psql -d postgres -c "DROP DATABASE ${DB_NAME}"
+    fi
 }
 
 quiet() {
