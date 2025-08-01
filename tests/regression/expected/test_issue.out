@@ -23,7 +23,7 @@ NOTICE:  Blocks limit reached. Exiting application main loop at processed block:
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
  creator | owner | symbol | holder |      data      | tags  | soulbound 
 ---------+-------+--------+--------+----------------+-------+-----------
-       6 |     6 | ABC    |      7 | {"foo": "bar"} | {xyz} | f
+ alice   | alice | ABC    | bob    | {"foo": "bar"} | {xyz} | f
 (1 row)
 
 SELECT ALL(updated_at = created_at) FROM instances_view;

@@ -87,8 +87,8 @@ $$;
 CREATE OR REPLACE VIEW types_view AS
 SELECT
     t.id,
-    t.creator,
-    t.owner,
+    c.name AS creator,
+    o.name AS owner,
     t.symbol,
     t.name,
     t.max_count,
@@ -98,23 +98,28 @@ SELECT
 FROM nfttracker_app.types AS t
 LEFT JOIN nfttracker_app.authorized_issuers AS ai ON t.id = ai.type_id
 LEFT JOIN hafd.accounts AS a ON ai.account_id = a.id
-GROUP BY t.id, t.creator, t.owner, t.symbol, t.name, t.max_count, t.created_at, t.updated_at
+LEFT JOIN hafd.accounts AS c ON t.creator = c.id
+LEFT JOIN hafd.accounts AS o ON t.owner = o.id
+GROUP BY t.id, c.name, o.name, t.symbol, t.name, t.max_count, t.created_at, t.updated_at
 ORDER BY id;
 
 CREATE OR REPLACE VIEW instances_view AS
 SELECT
     i.id,
-    i.holder,
+    h.name AS holder,
     i.data,
     i.tags,
     i.soulbound,
     i.created_at,
     i.updated_at,
-    t.creator,
-    t.owner,
+    c.name AS creator,
+    o.name AS owner,
     t.symbol,
     t.name,
     t.max_count
 FROM nfttracker_app.instances AS i
 INNER JOIN nfttracker_app.types AS t ON i.type_id = t.id
+LEFT JOIN hafd.accounts AS h ON i.holder = h.id
+LEFT JOIN hafd.accounts AS c ON t.creator = c.id
+LEFT JOIN hafd.accounts AS o ON t.owner = o.id
 ORDER BY id;

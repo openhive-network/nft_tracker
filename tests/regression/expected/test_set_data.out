@@ -31,7 +31,7 @@ NOTICE:  Blocks limit reached. Exiting application main loop at processed block:
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
  creator | owner | symbol | holder |        data        | tags | soulbound 
 ---------+-------+--------+--------+--------------------+------+-----------
-       6 |     6 | XYZ    |      6 | {"key2": "value2"} | {}   | f
+ alice   | alice | XYZ    | alice  | {"key2": "value2"} | {}   | f
 (1 row)
 
 SELECT ALL(updated_at > created_at) FROM instances_view;

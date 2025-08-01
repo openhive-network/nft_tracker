@@ -29,9 +29,9 @@ NOTICE:  nfttracker processed block 4 successfully in _ s
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 4.
 -- Then
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
- creator | owner | symbol | holder | data | tags | soulbound 
----------+-------+--------+--------+------+------+-----------
-       6 |     6 | XYZ    |      8 | {}   | {}   | f
+ creator | owner | symbol | holder  | data | tags | soulbound 
+---------+-------+--------+---------+------+------+-----------
+ alice   | alice | XYZ    | charlie | {}   | {}   | f
 (1 row)
 
 SELECT ALL(updated_at > created_at) FROM instances_view;

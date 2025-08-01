@@ -23,7 +23,7 @@ NOTICE:  Blocks limit reached. Exiting application main loop at processed block:
 SELECT creator, owner, symbol::TEXT, name::TEXT, max_count, issuers::TEXT[] FROM types_view;
  creator | owner | symbol |   name   | max_count | issuers 
 ---------+-------+--------+----------+-----------+---------
-       6 |     7 | ABC    | test-mod |        11 | {bob}
+ alice   | bob   | ABC    | test-mod |        11 | {bob}
 (1 row)
 
 SELECT ALL(updated_at > created_at) FROM types_view;

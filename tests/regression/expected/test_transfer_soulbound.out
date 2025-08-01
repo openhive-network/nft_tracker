@@ -36,8 +36,8 @@ NOTICE:  Blocks limit reached. Exiting application main loop at processed block:
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
  creator | owner | symbol | holder | data | tags | soulbound 
 ---------+-------+--------+--------+------+------+-----------
-       6 |     6 | AAA    |      6 | {}   | {}   | t
-       7 |     7 | BBB    |      7 | {}   | {}   | t
+ alice   | alice | AAA    | alice  | {}   | {}   | t
+ bob     | bob   | BBB    | bob    | {}   | {}   | t
 (2 rows)
 
 SELECT updated_at > created_at FROM instances_view WHERE symbol='AAA';
