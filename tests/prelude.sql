@@ -34,7 +34,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, holder hive.account_name_type, data jsonb, tags nfttracker_app.tags, souldbound bool)
+CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, holder hive.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -42,7 +42,7 @@ BEGIN
         to_jsonb(symbol)::text,
         to_jsonb(holder)::text,
         to_jsonb(data)::text,
-        to_jsonb(souldbound)::text,
+        to_jsonb(soulbound)::text,
         to_jsonb(tags)::text
     )::jsonb);
 END;

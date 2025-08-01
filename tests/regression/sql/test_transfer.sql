@@ -2,7 +2,7 @@
 
 -- Given
 CALL insert_nft_register_op(block_num=>1, auth=>'alice', name=>'test', symbol=>'XYZ', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
-CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'XYZ', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, souldbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'XYZ', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 CALL insert_nft_transfer_op(block_num=>3, auth=>'alice', symbol=>'XYZ', id=>1, to_account=>'bob');
 CALL insert_nft_transfer_op(block_num=>4, auth=>'alice', symbol=>'XYZ', id=>1, to_account=>'charlie');
 
