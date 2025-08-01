@@ -48,6 +48,18 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, id INT, soulbound bool)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    CALL insert_custom_json_operation(block_num, auth, 'NFT', format('{"action": "soulbind", "symbol": %s, "id": %s, "soulbound": %s}',
+        to_jsonb(symbol)::text,
+        to_jsonb(id)::text,
+        to_jsonb(soulbound)::text
+    )::jsonb);
+END;
+$$;
+
 CREATE OR REPLACE VIEW types_view AS
 SELECT
     t.id,

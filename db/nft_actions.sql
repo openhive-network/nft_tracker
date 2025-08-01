@@ -130,10 +130,14 @@ LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
 BEGIN
-  UPDATE nfttracker_app.instances
-  SET soulbound = j.soulbound
-  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
-  WHERE symbol = j.symbol AND id = j.id;
+  UPDATE nfttracker_app.instances AS i
+  SET
+    soulbound = j.soulbound,
+    updated_at = b.created_at
+  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, id INT, soulbound boolean)
+  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol
+  JOIN hafd.blocks AS b ON b.num = _block_num
+  WHERE i.id = j.id AND i.type_id = t.id;
 END
 $$;
 
