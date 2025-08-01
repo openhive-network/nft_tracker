@@ -1,2 +1,7 @@
 #!/bin/sh
-make -C tests/regression/ test
+
+if [ "$#" -gt 0 ]; then
+    make -C tests/regression/ test TESTS="$*"
+else
+    make -C tests/regression/ test
+fi

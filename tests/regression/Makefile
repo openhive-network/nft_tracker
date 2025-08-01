@@ -8,7 +8,7 @@ test:
 	--host=localhost \
 	--user=haf_admin \
 	--launcher=./launcher.sh \
-	`find sql/test_*.sql -print0 | xargs -0 -I{} basename {} .sql | paste -s -d ' '`
+	$(if $(TESTS),$(TESTS),`find sql/test_*.sql -print0 | xargs -0 -I{} basename {} .sql | paste -s -d ' '`)
 
 .PHONY: refresh
 refresh:
