@@ -14,12 +14,6 @@ _psql() {
     psql -w -v ON_ERROR_STOP=1 -h localhost -U haf_admin -d "$DB_NAME" "$@"
 }
 
-cleanup() {
-    if [ "$KEEP_DB" != "1" ]; then
-        _psql -d postgres -c "DROP DATABASE ${DB_NAME}"
-    fi
-}
-
 quiet() {
     if [ "$VERBOSE" = "1" ]; then
         "$@"
@@ -28,7 +22,16 @@ quiet() {
     fi
 }
 
-trap cleanup EXIT
+cleanup() {
+    _psql -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME}"
+}
+
+if [ "$KEEP_DB" != "1" ]; then
+    trap cleanup EXIT
+fi
+
+quiet cleanup
+
 _psql -d postgres -c "CREATE DATABASE ${DB_NAME}"
 
 quiet "$SETUP_SCRIPT" \
