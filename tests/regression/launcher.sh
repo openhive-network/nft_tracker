@@ -44,5 +44,11 @@ quiet _psql -f ../setup.sql
 quiet _psql -f ../../db/schema.sql -f ../../db/nft_actions.sql -f ../../db/main_loop.sql
 quiet _psql -f ../prelude.sql
 
-"$@" -d "$DB_NAME" 2>&1 | sed \
+if [ "$VERBOSE" = "1" ]; then
+    VERBOSITY=""
+else
+    VERBOSITY="--set=VERBOSITY=terse"
+fi
+
+"$@" "$VERBOSITY" -d "$DB_NAME" 2>&1 | sed \
     -E 's/nfttracker processed block ([0-9]+) successfully in [0-9.]+ s/nfttracker processed block \1 successfully in _ s/'

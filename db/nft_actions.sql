@@ -9,7 +9,21 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
+DECLARE
+  _symbol nfttracker_app.symbol;
 BEGIN
+  _symbol := _json->>'symbol';
+  IF _symbol.namespace <> _account THEN
+    RAISE EXCEPTION '% is disallowed to register NFT types in namespace %', _account, _symbol.namespace;
+  END IF;
+  WITH json_fields AS (
+    SELECT
+      _symbol.name AS symbol_name,
+      j.name,
+      j.max_count,
+      j.owner
+    FROM jsonb_to_record(_json) AS j(name text, max_count int, owner hive.account_name_type)
+  )
   INSERT INTO nfttracker_app.types(
     creator,
     owner,
@@ -22,12 +36,12 @@ BEGIN
   SELECT
     a.id,
     a.id,
-    j.symbol,
+    j.symbol_name,
     j.name,
     j.max_count,
     b.created_at,
     b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
+  FROM json_fields AS j
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j.owner;
 END
@@ -52,10 +66,10 @@ BEGIN
       owner = a.id,
       max_count = j.max_count,
       updated_at = b.created_at
-    FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, name text, max_count int, owner hive.account_name_type)
+    FROM jsonb_to_record(_json) AS j(symbol text, name text, max_count int, owner hive.account_name_type)
     JOIN hafd.blocks AS b ON b.num = _block_num
     JOIN hafd.accounts AS a ON a.name = j.owner
-    WHERE t.symbol = j.symbol
+    WHERE t.symbol = (j.symbol::nfttracker_app.symbol).name
     RETURNING t.id
   ),
   issuers AS (
@@ -113,8 +127,8 @@ BEGIN
     j.soulbound,
     b.created_at,
     b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type)
-  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol
+  FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type)
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j.holder;
 END
@@ -134,8 +148,8 @@ BEGIN
   SET
     soulbound = j.soulbound,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, id INT, soulbound boolean)
-  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol
+  FROM jsonb_to_record(_json) AS j(symbol text, id INT, soulbound boolean)
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   WHERE i.id = j.id AND i.type_id = t.id;
 END
@@ -155,8 +169,8 @@ BEGIN
   SET
     data = j.data,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, id INT, data jsonb)
-  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol
+  FROM jsonb_to_record(_json) AS j(symbol text, id INT, data jsonb)
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   WHERE i.id = j.id AND i.type_id = t.id;
 END
@@ -176,8 +190,8 @@ BEGIN
   SET
     holder = a.id,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol nfttracker_app.symbol, id INT, "to" hive.account_name_type)
-  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol
+  FROM jsonb_to_record(_json) AS j(symbol text, id INT, "to" hive.account_name_type)
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j."to"
   WHERE i.id = j.id AND i.type_id = t.id AND NOT i.soulbound;

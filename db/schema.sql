@@ -1,7 +1,43 @@
 CREATE SCHEMA IF NOT EXISTS nfttracker_app AUTHORIZATION nfttracker_owner;
 
-CREATE DOMAIN nfttracker_app.symbol AS VARCHAR(10)
-CHECK (value = UPPER(value));
+CREATE DOMAIN nfttracker_app.symbol_name AS VARCHAR(10)
+CHECK (value ~ '^[A-Z][A-Z0-9]*$');
+
+CREATE DOMAIN nfttracker_app.symbol_namespace AS VARCHAR(16);
+
+CREATE TYPE nfttracker_app.symbol AS (
+    namespace nfttracker_app.symbol_namespace,
+    name nfttracker_app.symbol_name
+);
+
+CREATE OR REPLACE FUNCTION nfttracker_app.text_to_symbol(input TEXT)
+RETURNS nfttracker_app.symbol AS $$
+DECLARE
+    parts TEXT[];
+    result nfttracker_app.symbol;
+BEGIN
+    parts := string_to_array(input, '/');
+
+    IF array_length(parts, 1) != 2 THEN
+        RAISE EXCEPTION 'Invalid symbol format. Expected "namespace/symbol", got: %', input;
+    END IF;
+
+    IF length(parts[1]) > 16 THEN
+        RAISE EXCEPTION 'Symbol namespace too long. Maximum 16 characters allowed, got: %', parts[1];
+    END IF;
+
+    IF length(parts[2]) > 10 THEN
+        RAISE EXCEPTION 'Symbol name too long. Maximum 10 characters allowed, got: %', parts[2];
+    END IF;
+
+    result.namespace := parts[1];
+    result.name := parts[2];
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;
+
+CREATE CAST (TEXT AS nfttracker_app.symbol) WITH FUNCTION nfttracker_app.text_to_symbol(TEXT) AS implicit;
 
 CREATE DOMAIN nfttracker_app.tags AS VARCHAR(8)[]
 CHECK (array_length(value, 1) <= 4);
@@ -10,7 +46,7 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     id BIGSERIAL PRIMARY KEY,
     creator INTEGER NOT NULL REFERENCES hafd.accounts(id),
     owner INTEGER NOT NULL REFERENCES hafd.accounts(id),
-    symbol nfttracker_app.symbol NOT NULL,
+    symbol nfttracker_app.symbol_name NOT NULL,
     name VARCHAR(255) NOT NULL,
     max_count INTEGER,  -- NULL means unlimited,
     created_at TIMESTAMP NOT NULL,

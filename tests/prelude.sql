@@ -6,7 +6,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_register_op(block_num INT, auth hive.account_name_type, name TEXT, symbol nfttracker_app.symbol, owner TEXT, issuers hive.account_name_type[], max_count INT, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_register_op(block_num INT, auth hive.account_name_type, symbol TEXT, name TEXT, owner hive.account_name_type, issuers hive.account_name_type[], max_count INT, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -20,7 +20,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_modify_op(block_num INT, auth hive.account_name_type, name TEXT, symbol nfttracker_app.symbol, owner TEXT, issuers hive.account_name_type[], max_count INT, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_modify_op(block_num INT, auth hive.account_name_type, name TEXT, symbol TEXT, owner hive.account_name_type, issuers hive.account_name_type[], max_count INT, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -34,7 +34,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, holder hive.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hive.account_name_type, symbol TEXT, holder hive.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -48,7 +48,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, id INT, soulbound bool, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hive.account_name_type, symbol TEXT, id INT, soulbound bool, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -60,7 +60,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, id INT, data jsonb, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hive.account_name_type, symbol TEXT, id INT, data jsonb, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -72,7 +72,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hive.account_name_type, symbol nfttracker_app.symbol, id INT, to_account hive.account_name_type, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hive.account_name_type, symbol TEXT, id INT, to_account hive.account_name_type, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
