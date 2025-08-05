@@ -136,20 +136,15 @@ AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
 BEGIN
-  _symbol := _json->>'symbol';
-  IF _symbol.namespace <> _account THEN
-    RAISE EXCEPTION '% is disallowed to issue NFTs in namespace %', _account, _symbol.namespace;
-  END IF;
   WITH json_fields AS (
     SELECT
-      _symbol.name AS symbol_name,
-      _symbol.namespace AS symbol_namespace,
+      (j.symbol::nfttracker_app.symbol).name AS symbol_name,
+      (j.symbol::nfttracker_app.symbol).namespace AS symbol_namespace,
       j.data,
       j.tags,
       j.soulbound,
-      j.holder,
-      j.issuers
-    FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type, issuers hive.account_name_type[])
+      j.holder
+    FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type)
   )
   INSERT INTO nfttracker_app.instances (
     type_id,
