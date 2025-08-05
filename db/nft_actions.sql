@@ -57,19 +57,35 @@ LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
 DECLARE
+  _symbol nfttracker_app.symbol;
   _count BIGINT;
 BEGIN
-  WITH update_type AS (
+  _symbol := _json->>'symbol';
+  IF _symbol.namespace <> _account THEN
+    RAISE EXCEPTION '% is disallowed to modify NFT types in namespace %', _account, _symbol.namespace;
+  END IF;
+  WITH json_fields AS (
+    SELECT
+      _symbol.name AS symbol_name,
+      _symbol.namespace AS symbol_namespace,
+      j.name,
+      j.max_count,
+      j.owner
+    FROM jsonb_to_record(_json) AS j(symbol text, name text, max_count int, owner hive.account_name_type)
+  ),
+  update_type AS (
     UPDATE nfttracker_app.types AS t
     SET
       name = j.name,
       owner = a.id,
       max_count = j.max_count,
       updated_at = b.created_at
-    FROM jsonb_to_record(_json) AS j(symbol text, name text, max_count int, owner hive.account_name_type)
+    FROM json_fields AS j
     JOIN hafd.blocks AS b ON b.num = _block_num
     JOIN hafd.accounts AS a ON a.name = j.owner
-    WHERE t.symbol = (j.symbol::nfttracker_app.symbol).name
+    JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
+    WHERE t.symbol = j.symbol_name
+      AND t.creator = ns.id
     RETURNING t.id
   ),
   issuers AS (

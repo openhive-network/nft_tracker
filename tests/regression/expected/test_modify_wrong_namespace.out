@@ -1,0 +1,34 @@
+-- Check that modifying properties of unowned type fails
+-- Given
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
+CALL insert_nft_modify_op(block_num=>2, auth=>'bob', symbol=>'alice/ABC', name=>'test-mod', owner=>'bob', issuers=>ARRAY['bob'], max_count=>11);
+-- When
+CALL nfttracker_app.main('nfttracker_app', 2);
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+WARNING:  Error processing action modify in block 2: bob is disallowed to modify NFT types in namespace alice
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
+-- Then
+SELECT creator, owner, symbol::TEXT, name::TEXT, max_count, issuers::TEXT[] FROM types_view;
+ creator | owner | symbol | name | max_count | issuers 
+---------+-------+--------+------+-----------+---------
+ alice   | alice | ABC    | test |        12 | 
+(1 row)
+
+SELECT ALL(updated_at = created_at) FROM types_view;
+ ?column? 
+----------
+ t
+(1 row)
+
