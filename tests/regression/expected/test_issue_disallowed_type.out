@@ -1,0 +1,31 @@
+-- Check that issuing an instance of NFT is not allowed for users not present in the issuers array
+-- Given
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', name=>'test', owner=>'alice', issuers=>ARRAY[]::hive.account_name_type[], max_count=>12);
+CALL insert_nft_issue_op(block_num=>2, pos=>1, auth=>'alice', symbol=>'alice/ABC', holder=>'alice', data=>'{"foo": "bar"}', tags=>ARRAY['abc']::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>2, pos=>2, auth=>'bob', symbol=>'alice/ABC', holder=>'bob', data=>'{"foo": "bar"}', tags=>ARRAY['abc']::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>2, pos=>3, auth=>'charlie', symbol=>'alice/ABC', holder=>'charlie', data=>'{"foo": "bar"}', tags=>ARRAY['abc']::nfttracker_app.tags, soulbound=>FALSE);
+-- When
+CALL nfttracker_app.main('nfttracker_app', 2);
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+WARNING:  Error processing action issue in block 2: bob is disallowed to issue NFTs in namespace alice
+WARNING:  Error processing action issue in block 2: charlie is disallowed to issue NFTs in namespace alice
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
+-- Then
+SELECT COUNT(*) FROM instances_view;
+ count 
+-------
+     0
+(1 row)
+

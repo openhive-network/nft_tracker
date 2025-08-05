@@ -133,7 +133,24 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
+DECLARE
+  _symbol nfttracker_app.symbol;
 BEGIN
+  _symbol := _json->>'symbol';
+  IF _symbol.namespace <> _account THEN
+    RAISE EXCEPTION '% is disallowed to issue NFTs in namespace %', _account, _symbol.namespace;
+  END IF;
+  WITH json_fields AS (
+    SELECT
+      _symbol.name AS symbol_name,
+      _symbol.namespace AS symbol_namespace,
+      j.data,
+      j.tags,
+      j.soulbound,
+      j.holder,
+      j.issuers
+    FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type, issuers hive.account_name_type[])
+  )
   INSERT INTO nfttracker_app.instances (
     type_id,
     holder,
@@ -145,16 +162,19 @@ BEGIN
   )
   SELECT
     t.id,
-    a.id,
+    h.id,
     j.data,
     j.tags,
     j.soulbound,
     b.created_at,
     b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type)
-  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
+  FROM json_fields AS j
   JOIN hafd.blocks AS b ON b.num = _block_num
-  JOIN hafd.accounts AS a ON a.name = j.holder;
+  JOIN hafd.accounts AS h ON h.name = j.holder
+  JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
+  JOIN hafd.accounts AS i ON i.name = _account
+  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol_name AND t.creator = ns.id
+  JOIN nfttracker_app.authorized_issuers AS ai ON ai.type_id = t.id AND ai.account_id = i.id;
 END
 $$;
 
