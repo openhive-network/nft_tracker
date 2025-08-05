@@ -15,10 +15,10 @@ NOTICE:  nfttracker processed block 1 successfully in _ s
     
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 1.
 -- Then
-SELECT creator, owner, symbol::TEXT, name::TEXT, max_count FROM types_view;
- creator | owner | symbol | name | max_count 
----------+-------+--------+------+-----------
- alice   | alice | ABC    | test |        12
+SELECT creator, owner, symbol::TEXT, name::TEXT, max_count, issuers::TEXT[] FROM types_view;
+ creator | owner | symbol | name | max_count | issuers 
+---------+-------+--------+------+-----------+---------
+ alice   | alice | ABC    | test |        12 | {alice}
 (1 row)
 
 SELECT ALL(updated_at = created_at) FROM types_view;

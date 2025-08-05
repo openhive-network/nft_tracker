@@ -21,29 +21,37 @@ BEGIN
       _symbol.name AS symbol_name,
       j.name,
       j.max_count,
-      j.owner
-    FROM jsonb_to_record(_json) AS j(name text, max_count int, owner hive.account_name_type)
+      j.owner,
+      j.issuers
+    FROM jsonb_to_record(_json) AS j(name text, max_count int, owner hive.account_name_type, issuers hive.account_name_type[])
+  ),
+  new_type AS (
+    INSERT INTO nfttracker_app.types(
+      creator,
+      owner,
+      symbol,
+      name,
+      max_count,
+      created_at,
+      updated_at
+    )
+    SELECT
+      a.id,
+      a.id,
+      j.symbol_name,
+      j.name,
+      j.max_count,
+      b.created_at,
+      b.created_at
+    FROM json_fields AS j
+    JOIN hafd.blocks AS b ON b.num = _block_num
+    JOIN hafd.accounts AS a ON a.name = j.owner
+    RETURNING id, (SELECT issuers FROM json_fields LIMIT 1) AS issuers
   )
-  INSERT INTO nfttracker_app.types(
-    creator,
-    owner,
-    symbol,
-    name,
-    max_count,
-    created_at,
-    updated_at
-  )
-  SELECT
-    a.id,
-    a.id,
-    j.symbol_name,
-    j.name,
-    j.max_count,
-    b.created_at,
-    b.created_at
-  FROM json_fields AS j
-  JOIN hafd.blocks AS b ON b.num = _block_num
-  JOIN hafd.accounts AS a ON a.name = j.owner;
+  INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)
+  SELECT t.id, a.id
+  FROM new_type AS t
+  JOIN hafd.accounts AS a ON a.name = ANY((SELECT issuers FROM json_fields)::hive.account_name_type[]);
 END
 $$;
 
