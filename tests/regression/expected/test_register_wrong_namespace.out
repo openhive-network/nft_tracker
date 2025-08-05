@@ -18,7 +18,26 @@ WARNING:  Waiting for next block...
 NOTICE:  HAF instance is ready. Exiting wait loop.
 WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
 NOTICE:  nfttracker processing block: 1...
-ERROR:  alice is disallowed to register NFT types in namespace bob
+WARNING:  Error processing action register in block 1: alice is disallowed to register NFT types in namespace bob
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+WARNING:  Error processing action register in block 2: bob is disallowed to register NFT types in namespace initminer
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 3...
+WARNING:  Error processing action register in block 3: charlie is disallowed to register NFT types in namespace 
+WARNING:  Error processing action register in block 3: Invalid symbol format. Expected "namespace/symbol", got: ABC
+WARNING:  Error processing action register in block 3: Invalid symbol format. Expected "namespace/symbol", got: charlie/charlie/ABC
+NOTICE:  nfttracker processed block 3 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 4...
+WARNING:  Error processing action register in block 4: dan is disallowed to register NFT types in namespace -abc
+WARNING:  Error processing action register in block 4: dan is disallowed to register NFT types in namespace -abc-
+WARNING:  Error processing action register in block 4: dan is disallowed to register NFT types in namespace *xyz*
+NOTICE:  nfttracker processed block 4 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 4.
 -- Then
 SELECT COUNT(*) FROM types_view;
  count 

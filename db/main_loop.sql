@@ -33,6 +33,37 @@ BEGIN
 END
 $$;
 
+CREATE OR REPLACE FUNCTION nfttracker_app.process_action(
+    IN _block_num INT,
+    IN _posting_auth hive.account_name_type,
+    IN _json JSONB
+)
+RETURNS SETOF VOID
+LANGUAGE 'plpgsql' VOLATILE
+AS
+$$
+DECLARE
+  err_msg TEXT;
+BEGIN
+  BEGIN
+    RETURN QUERY
+      SELECT
+        CASE _json->>'action'
+          WHEN 'register' THEN nfttracker_app.register(_block_num, _posting_auth, _json)
+          WHEN 'modify' THEN nfttracker_app.modify(_block_num, _posting_auth, _json)
+          WHEN 'issue' THEN nfttracker_app.issue(_block_num, _posting_auth, _json)
+          WHEN 'soulbind' THEN nfttracker_app.soulbind(_block_num, _posting_auth, _json)
+          WHEN 'set_data' THEN nfttracker_app.set_data(_block_num, _posting_auth, _json)
+          WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _posting_auth, _json)
+        END;
+  EXCEPTION
+    WHEN OTHERS THEN
+      GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
+      RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg;
+  END;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.block_range_data(
     IN _first_block_num INT,
     IN _last_block_num INT
@@ -67,15 +98,7 @@ BEGIN
   ),
   process AS
   (
-    SELECT
-      CASE o.action
-        WHEN 'register' THEN nfttracker_app.register(o.block_num, o.posting_auth, o.json)
-        WHEN 'modify' THEN nfttracker_app.modify(o.block_num, o.posting_auth, o.json)
-        WHEN 'issue' THEN nfttracker_app.issue(o.block_num, o.posting_auth, o.json)
-        WHEN 'soulbind' THEN nfttracker_app.soulbind(o.block_num, o.posting_auth, o.json)
-        WHEN 'set_data' THEN nfttracker_app.set_data(o.block_num, o.posting_auth, o.json)
-        WHEN 'transfer' THEN nfttracker_app.transfer(o.block_num, o.posting_auth, o.json)
-      END
+    SELECT nfttracker_app.process_action(o.block_num, o.posting_auth, o.json)
     FROM selected_range AS o
   )
   SELECT COUNT(*) FROM process INTO _result;
