@@ -12,5 +12,6 @@ CALL insert_nft_soulbind_op(block_num=>6, auth=>'charlie', symbol=>'alice/ABC', 
 CALL nfttracker_sync_blocks();
 
 -- Then
+SELECT name, issuers FROM types_view;
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
 SELECT updated_at = created_at FROM instances_view;

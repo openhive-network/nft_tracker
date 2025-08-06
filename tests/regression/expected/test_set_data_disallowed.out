@@ -1,0 +1,52 @@
+-- Check that accounts that are not issuers cannot set instance data
+-- Given
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/XYZ', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/XYZ', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_modify_op(block_num=>3, auth=>'alice', symbol=>'alice/XYZ', name=>'test', owner=>'alice', issuers=>ARRAY[]::hive.account_name_type[], max_count=>12);
+CALL insert_nft_set_data_op(block_num=>4, pos=>1, auth=>'alice', symbol=>'alice/XYZ', id=>1, data=>'{"by": "alice"}'::jsonb);
+CALL insert_nft_set_data_op(block_num=>4, pos=>2, auth=>'bob', symbol=>'alice/XYZ', id=>1, data=>'{"by": "bob"}'::jsonb);
+CALL insert_nft_set_data_op(block_num=>4, pos=>3, auth=>'charlie', symbol=>'alice/XYZ', id=>1, data=>'{"by": "charlie"}'::jsonb);
+-- When
+CALL nfttracker_sync_blocks();
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 3...
+NOTICE:  nfttracker processed block 3 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 4...
+WARNING:  Error processing action set_data in block 4: Account alice is disallowed to set data on NFTs alice/XYZ
+WARNING:  Error processing action set_data in block 4: Account bob is disallowed to set data on NFTs alice/XYZ
+WARNING:  Error processing action set_data in block 4: Account charlie is disallowed to set data on NFTs alice/XYZ
+NOTICE:  nfttracker processed block 4 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 4.
+-- Then
+SELECT name, issuers FROM types_view;
+ name | issuers 
+------+---------
+ test | 
+(1 row)
+
+SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
+ creator | owner | symbol | holder | data | tags | soulbound 
+---------+-------+--------+--------+------+------+-----------
+ alice   | alice | XYZ    | alice  | {}   | {}   | f
+(1 row)
+
+SELECT updated_at = created_at FROM instances_view;
+ ?column? 
+----------
+ t
+(1 row)
+

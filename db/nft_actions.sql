@@ -220,7 +220,23 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
+DECLARE
+  _count INT;
 BEGIN
+  SELECT COUNT(*) INTO _count
+    FROM (
+      SELECT
+        (j.symbol::nfttracker_app.symbol).name AS symbol_name,
+        (j.symbol::nfttracker_app.symbol).namespace AS symbol_namespace
+      FROM jsonb_to_record(_json) AS j(symbol text)
+    ) AS j
+    JOIN hafd.accounts AS a ON a.name = _account
+    JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
+    JOIN nfttracker_app.types AS t ON t.creator = ns.id AND t.symbol = j.symbol_name
+    JOIN nfttracker_app.authorized_issuers AS ai ON ai.type_id = t.id AND ai.account_id = a.id;
+  IF _count = 0 THEN
+    RAISE EXCEPTION 'Account % is disallowed to set data on NFTs %', _account, _json->>'symbol';
+  END IF;
   UPDATE nfttracker_app.instances AS i
   SET
     data = j.data,
