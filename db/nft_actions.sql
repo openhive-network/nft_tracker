@@ -27,6 +27,30 @@ BEGIN
 END;
 $$;
 
+-- Retruns true if given account is owner of the given symbol.
+CREATE OR REPLACE FUNCTION nfttracker_app.is_owner(
+  IN _symbol nfttracker_app.symbol,
+  IN _account hive.account_name_type
+)
+RETURNS bool
+LANGUAGE plpgsql
+STABLE
+AS
+$$
+DECLARE
+  _owner BOOLEAN;
+BEGIN
+  SELECT COUNT(*) > 0 INTO _owner
+    FROM nfttracker_app.types AS t
+    JOIN hafd.accounts AS a ON a.name = _account
+    JOIN hafd.accounts AS ns ON ns.name = _symbol.namespace
+    WHERE t.creator = ns.id
+      AND t.symbol = _symbol.name
+      AND t.owner = a.id;
+  RETURN _owner;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.register(
   IN _block_num INT,
   IN _account hive.account_name_type,
@@ -97,8 +121,8 @@ DECLARE
   _count BIGINT;
 BEGIN
   _symbol := _json->>'symbol';
-  IF _symbol.namespace <> _account THEN
-    RAISE EXCEPTION '% is disallowed to modify NFT types in namespace %', _account, _symbol.namespace;
+  IF NOT nfttracker_app.is_owner(_symbol, _account) THEN
+    RAISE EXCEPTION '% is disallowed to modify NFT type %', _account, _json->>'symbol';
   END IF;
   WITH json_fields AS (
     SELECT
@@ -113,12 +137,12 @@ BEGIN
     UPDATE nfttracker_app.types AS t
     SET
       name = j.name,
-      owner = a.id,
+      owner = o.id,
       max_count = j.max_count,
       updated_at = b.created_at
     FROM json_fields AS j
     JOIN hafd.blocks AS b ON b.num = _block_num
-    JOIN hafd.accounts AS a ON a.name = j.owner
+    JOIN hafd.accounts AS o ON o.name = j.owner
     JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
     WHERE t.symbol = j.symbol_name
       AND t.creator = ns.id

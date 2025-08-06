@@ -15,7 +15,7 @@ NOTICE:  nfttracker processing block: 1...
 NOTICE:  nfttracker processed block 1 successfully in _ s
     
 NOTICE:  nfttracker processing block: 2...
-WARNING:  Error processing action modify in block 2: bob is disallowed to modify NFT types in namespace alice
+WARNING:  Error processing action modify in block 2: bob is disallowed to modify NFT type alice/ABC
 NOTICE:  nfttracker processed block 2 successfully in _ s
     
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.

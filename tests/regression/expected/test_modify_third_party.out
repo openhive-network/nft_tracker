@@ -1,0 +1,37 @@
+-- Check that modifying properties of registered NFT type works correctly
+-- Given
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', name=>'test', owner=>'bob', issuers=>ARRAY['dan'], max_count=>12);
+CALL insert_nft_modify_op(block_num=>2, pos=>1, auth=>'alice', name=>'test-alice', symbol=>'alice/ABC', owner=>'alice', issuers=>ARRAY['alice'], max_count=>11);
+CALL insert_nft_modify_op(block_num=>2, pos=>2, auth=>'bob', name=>'test-bob', symbol=>'alice/ABC', owner=>'bob', issuers=>ARRAY['bob'], max_count=>11);
+CALL insert_nft_modify_op(block_num=>2, pos=>3, auth=>'charlie', name=>'test-charlie', symbol=>'alice/ABC', owner=>'charlie', issuers=>ARRAY['charlie'], max_count=>11);
+-- When
+CALL nfttracker_sync_blocks();
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+WARNING:  Error processing action modify in block 2: alice is disallowed to modify NFT type alice/ABC
+WARNING:  Error processing action modify in block 2: charlie is disallowed to modify NFT type alice/ABC
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
+-- Then
+SELECT creator, owner, symbol, name, max_count, issuers FROM types_view;
+ creator | owner | symbol |   name   | max_count | issuers 
+---------+-------+--------+----------+-----------+---------
+ alice   | bob   | ABC    | test-bob |        11 | {bob}
+(1 row)
+
+SELECT updated_at > created_at FROM types_view;
+ ?column? 
+----------
+ t
+(1 row)
+
