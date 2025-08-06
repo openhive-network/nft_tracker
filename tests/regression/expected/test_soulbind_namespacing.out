@@ -1,0 +1,53 @@
+-- Check that soulbinding respects namespacing
+-- Given
+CALL insert_nft_register_op(block_num=>1, pos=>1, auth=>'alice', symbol=>'alice/ABC', name=>'test', owner=>'alice', issuers=>ARRAY['alice']::hive.account_name_type[], max_count=>12);
+CALL insert_nft_register_op(block_num=>1, pos=>2, auth=>'bob', symbol=>'bob/ABC', name=>'test', owner=>'bob', issuers=>ARRAY['bob']::hive.account_name_type[], max_count=>12);
+CALL insert_nft_register_op(block_num=>1, pos=>3, auth=>'charlie', symbol=>'charlie/ABC', name=>'test', owner=>'charlie', issuers=>ARRAY['charlie']::hive.account_name_type[], max_count=>12);
+CALL insert_nft_issue_op(block_num=>2, pos=>1, auth=>'alice', symbol=>'alice/ABC', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>2, pos=>2, auth=>'bob', symbol=>'bob/ABC', holder=>'bob', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>2, pos=>3, auth=>'charlie', symbol=>'charlie/ABC', holder=>'charlie', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_soulbind_op(block_num=>4, pos=>1, auth=>'alice', symbol=>'alice/ABC', id=>1, soulbound=>TRUE);
+-- When
+CALL nfttracker_app.main('nfttracker_app', 4);
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 3...
+NOTICE:  nfttracker processed block 3 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 4...
+NOTICE:  nfttracker processed block 4 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 4.
+-- Then
+SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
+ creator |  owner  | symbol | holder  | data | tags | soulbound 
+---------+---------+--------+---------+------+------+-----------
+ alice   | alice   | ABC    | alice   | {}   | {}   | t
+ bob     | bob     | ABC    | bob     | {}   | {}   | f
+ charlie | charlie | ABC    | charlie | {}   | {}   | f
+(3 rows)
+
+SELECT updated_at > created_at FROM instances_view WHERE id=1;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT updated_at = created_at FROM instances_view WHERE id>1;
+ ?column? 
+----------
+ t
+ t
+(2 rows)
+

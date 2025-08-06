@@ -204,7 +204,8 @@ BEGIN
     soulbound = j.soulbound,
     updated_at = b.created_at
   FROM jsonb_to_record(_json) AS j(symbol text, id INT, soulbound boolean)
-  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
+  JOIN hafd.accounts AS ns ON ns.name = (j.symbol::nfttracker_app.symbol).namespace
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name AND t.creator = ns.id
   JOIN hafd.blocks AS b ON b.num = _block_num
   WHERE i.id = j.id AND i.type_id = t.id;
 END
