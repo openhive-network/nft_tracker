@@ -1,5 +1,32 @@
 SET ROLE nfttracker_owner;
 
+-- Returns true if given account is in the authorized issuers list for the given symbol.
+CREATE OR REPLACE FUNCTION nfttracker_app.is_authorized(
+  IN _symbol nfttracker_app.symbol,
+  IN _account hive.account_name_type
+)
+  RETURNS bool
+  LANGUAGE plpgsql
+  STABLE
+AS
+$$
+DECLARE
+  _authorized BOOLEAN;
+BEGIN
+  SELECT COUNT(*) > 0 INTO _authorized
+    FROM (
+      SELECT
+        _symbol.name AS symbol_name,
+        _symbol.namespace AS symbol_namespace
+    ) AS j
+    JOIN hafd.accounts AS a ON a.name = _account
+    JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
+    JOIN nfttracker_app.types AS t ON t.creator = ns.id AND t.symbol = j.symbol_name
+    JOIN nfttracker_app.authorized_issuers AS ai ON ai.type_id = t.id AND ai.account_id = a.id;
+  RETURN _authorized;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.register(
   IN _block_num INT,
   IN _account hive.account_name_type,
@@ -182,21 +209,8 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
-DECLARE
-  _count INT;
 BEGIN
-  SELECT COUNT(*) INTO _count
-    FROM (
-      SELECT
-        (j.symbol::nfttracker_app.symbol).name AS symbol_name,
-        (j.symbol::nfttracker_app.symbol).namespace AS symbol_namespace
-      FROM jsonb_to_record(_json) AS j(symbol text)
-    ) AS j
-    JOIN hafd.accounts AS a ON a.name = _account
-    JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
-    JOIN nfttracker_app.types AS t ON t.creator = ns.id AND t.symbol = j.symbol_name
-    JOIN nfttracker_app.authorized_issuers AS ai ON ai.type_id = t.id AND ai.account_id = a.id;
-  IF _count = 0 THEN
+  IF NOT nfttracker_app.is_authorized(_json->>'symbol', _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to soulbind NFTs %', _account, _json->>'symbol';
   END IF;
   UPDATE nfttracker_app.instances AS i
@@ -220,21 +234,8 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
-DECLARE
-  _count INT;
 BEGIN
-  SELECT COUNT(*) INTO _count
-    FROM (
-      SELECT
-        (j.symbol::nfttracker_app.symbol).name AS symbol_name,
-        (j.symbol::nfttracker_app.symbol).namespace AS symbol_namespace
-      FROM jsonb_to_record(_json) AS j(symbol text)
-    ) AS j
-    JOIN hafd.accounts AS a ON a.name = _account
-    JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
-    JOIN nfttracker_app.types AS t ON t.creator = ns.id AND t.symbol = j.symbol_name
-    JOIN nfttracker_app.authorized_issuers AS ai ON ai.type_id = t.id AND ai.account_id = a.id;
-  IF _count = 0 THEN
+  IF NOT nfttracker_app.is_authorized(_json->>'symbol', _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to set data on NFTs %', _account, _json->>'symbol';
   END IF;
   UPDATE nfttracker_app.instances AS i
