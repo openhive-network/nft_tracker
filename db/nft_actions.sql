@@ -185,9 +185,10 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
-DECLARE
-  _symbol nfttracker_app.symbol;
 BEGIN
+  IF NOT nfttracker_app.is_authorized(_json->>'symbol', _account) THEN
+    RAISE EXCEPTION 'Account % is disallowed to issue NFTs %', _account, _json->>'symbol';
+  END IF;
   WITH json_fields AS (
     SELECT
       (j.symbol::nfttracker_app.symbol).name AS symbol_name,
@@ -220,8 +221,7 @@ BEGIN
   JOIN hafd.accounts AS h ON h.name = j.holder
   JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
   JOIN hafd.accounts AS i ON i.name = _account
-  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol_name AND t.creator = ns.id
-  JOIN nfttracker_app.authorized_issuers AS ai ON ai.type_id = t.id AND ai.account_id = i.id;
+  JOIN nfttracker_app.types AS t ON t.symbol = j.symbol_name AND t.creator = ns.id;
 END
 $$;
 
