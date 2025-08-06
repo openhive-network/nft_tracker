@@ -7,7 +7,7 @@ CALL insert_nft_issue_op(block_num=>2, pos=>2, auth=>'bob', symbol=>'alice/ABC',
 CALL insert_nft_issue_op(block_num=>2, pos=>3, auth=>'charlie', symbol=>'alice/ABC', holder=>'charlie', data=>'{"foo": "bar"}', tags=>ARRAY['abc']::nfttracker_app.tags, soulbound=>FALSE);
 
 -- When
-CALL nfttracker_app.main('nfttracker_app', 2);
+CALL nfttracker_sync_blocks();
 
 -- Then
 SELECT COUNT(*) FROM instances_view;

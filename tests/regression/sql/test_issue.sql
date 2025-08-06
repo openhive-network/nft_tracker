@@ -5,7 +5,7 @@ CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', na
 CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/ABC', holder=>'bob', data=>'{"foo": "bar"}', tags=>ARRAY['xyz']::nfttracker_app.tags, soulbound=>FALSE);
 
 -- When
-CALL nfttracker_app.main('nfttracker_app', 2);
+CALL nfttracker_sync_blocks();
 
 -- Then
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;

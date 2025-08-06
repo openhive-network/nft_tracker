@@ -5,7 +5,7 @@ CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/XYZ', holde
 CALL insert_nft_set_data_op(block_num=>3, auth=>'alice', symbol=>'alice/XYZ', id=>1, data=>'{"key1": "value1"}'::jsonb);
 CALL insert_nft_set_data_op(block_num=>4, auth=>'alice', symbol=>'alice/XYZ', id=>1, data=>'{"key2": "value2"}'::jsonb);
 -- When
-CALL nfttracker_app.main('nfttracker_app', 4);
+CALL nfttracker_sync_blocks();
 NOTICE:  Last block processed by application: 0
 NOTICE:  Entering application main loop...
 WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1

@@ -9,7 +9,7 @@ CALL insert_nft_soulbind_op(block_num=>5, auth=>'bob', symbol=>'alice/ABC', id=>
 CALL insert_nft_soulbind_op(block_num=>6, auth=>'charlie', symbol=>'alice/ABC', id=>1, soulbound=>TRUE);
 
 -- When
-CALL nfttracker_app.main('nfttracker_app', 6);
+CALL nfttracker_sync_blocks();
 
 -- Then
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;

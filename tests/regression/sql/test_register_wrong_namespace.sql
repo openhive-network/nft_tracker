@@ -11,7 +11,7 @@ CALL insert_nft_register_op(block_num=>4, pos=>2, auth=>'dan', symbol=>'-abc-/AB
 CALL insert_nft_register_op(block_num=>4, pos=>3, auth=>'dan', symbol=>'*xyz*/ABC', name=>'test', owner=>'dan', issuers=>ARRAY['dan'], max_count=>10);
 
 -- When
-CALL nfttracker_app.main('nfttracker_app', 4);
+CALL nfttracker_sync_blocks();
 
 -- Then
 SELECT COUNT(*) FROM types_view;

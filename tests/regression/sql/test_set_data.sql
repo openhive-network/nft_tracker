@@ -7,7 +7,7 @@ CALL insert_nft_set_data_op(block_num=>3, auth=>'alice', symbol=>'alice/XYZ', id
 CALL insert_nft_set_data_op(block_num=>4, auth=>'alice', symbol=>'alice/XYZ', id=>1, data=>'{"key2": "value2"}'::jsonb);
 
 -- When
-CALL nfttracker_app.main('nfttracker_app', 4);
+CALL nfttracker_sync_blocks();
 
 -- Then
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;

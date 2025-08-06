@@ -84,6 +84,17 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE nfttracker_sync_blocks()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    block_count INT;
+BEGIN
+    SELECT MAX(hafd.operation_id_to_block_num(id)) INTO block_count FROM hafd.operations;
+    CALL nfttracker_app.main('nfttracker_app', block_count);
+END;
+$$;
+
 CREATE OR REPLACE VIEW types_view AS
 SELECT
     t.id,

@@ -12,7 +12,7 @@ CALL insert_nft_issue_op(block_num=>2, pos=>1, auth=>'bob', symbol=>'bob/BBB', h
 CALL insert_nft_transfer_op(block_num=>3, pos=>1, auth=>'bob', symbol=>'bob/BBB', id=>2, to_account=>'dan');
 
 -- When
-CALL nfttracker_app.main('nfttracker_app', 4);
+CALL nfttracker_sync_blocks();
 
 -- Then
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;

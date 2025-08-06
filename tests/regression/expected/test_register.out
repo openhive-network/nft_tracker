@@ -2,7 +2,7 @@
 -- Given
 CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
 -- When
-CALL nfttracker_app.main('nfttracker_app', 1);
+CALL nfttracker_sync_blocks();
 NOTICE:  Last block processed by application: 0
 NOTICE:  Entering application main loop...
 WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
