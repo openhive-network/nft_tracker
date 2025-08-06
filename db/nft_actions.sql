@@ -64,7 +64,7 @@ BEGIN
     )
     SELECT
       a.id,
-      a.id,
+      o.id,
       j.symbol_name,
       j.name,
       j.max_count,
@@ -72,7 +72,8 @@ BEGIN
       b.created_at
     FROM json_fields AS j
     JOIN hafd.blocks AS b ON b.num = _block_num
-    JOIN hafd.accounts AS a ON a.name = j.owner
+    JOIN hafd.accounts AS o ON o.name = j.owner
+    JOIN hafd.accounts AS a ON a.name = _account
     RETURNING id, (SELECT issuers FROM json_fields LIMIT 1) AS issuers
   )
   INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)

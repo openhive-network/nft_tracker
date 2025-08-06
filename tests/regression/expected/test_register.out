@@ -1,6 +1,7 @@
 -- Check that registering a new NFT type works correctly
 -- Given
-CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
+CALL insert_nft_register_op(block_num=>1, pos=>1, auth=>'alice', symbol=>'alice/A', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
+CALL insert_nft_register_op(block_num=>1, pos=>2, auth=>'alice', symbol=>'alice/B', name=>'diff', owner=>'bob', issuers=>ARRAY['bob'], max_count=>10);
 -- When
 CALL nfttracker_sync_blocks();
 NOTICE:  Last block processed by application: 0
@@ -18,12 +19,14 @@ NOTICE:  Blocks limit reached. Exiting application main loop at processed block:
 SELECT creator, owner, symbol::TEXT, name::TEXT, max_count, issuers::TEXT[] FROM types_view;
  creator | owner | symbol | name | max_count | issuers 
 ---------+-------+--------+------+-----------+---------
- alice   | alice | ABC    | test |        12 | {alice}
-(1 row)
+ alice   | alice | A      | test |        12 | {alice}
+ alice   | bob   | B      | diff |        10 | {bob}
+(2 rows)
 
-SELECT ALL(updated_at = created_at) FROM types_view;
+SELECT updated_at = created_at FROM types_view;
  ?column? 
 ----------
  t
-(1 row)
+ t
+(2 rows)
 
