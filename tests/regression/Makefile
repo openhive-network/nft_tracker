@@ -13,3 +13,7 @@ test:
 .PHONY: refresh
 refresh:
 	cp results/*.out expected/
+
+.PHONY: gitadd
+gitadd:
+	git add expected/
