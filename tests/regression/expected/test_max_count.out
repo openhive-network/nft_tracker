@@ -1,0 +1,89 @@
+-- Check registering/issuing NFTs respect max_count
+-- Given
+CALL insert_nft_register_op(block_num=>1, pos=>1, auth=>'alice', symbol=>'alice/A', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>-1);
+CALL insert_nft_register_op(block_num=>1, pos=>2, auth=>'alice', symbol=>'alice/B', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>0);
+CALL insert_nft_register_op(block_num=>1, pos=>3, auth=>'alice', symbol=>'alice/C', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>1);
+CALL insert_nft_register_op(block_num=>1, pos=>4, auth=>'alice', symbol=>'alice/D', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>3);
+CALL insert_nft_register_op(block_num=>1, pos=>5, auth=>'alice', symbol=>'alice/X', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>NULL);
+CALL insert_nft_issue_op(block_num=>2, pos=>1, auth=>'alice', symbol=>'alice/A', holder=>'alice', data=>'{"a": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>3, pos=>1, auth=>'alice', symbol=>'alice/B', holder=>'alice', data=>'{"b": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>4, pos=>1, auth=>'alice', symbol=>'alice/C', holder=>'alice', data=>'{"c": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>4, pos=>2, auth=>'alice', symbol=>'alice/C', holder=>'alice', data=>'{"c": 2}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>5, pos=>1, auth=>'alice', symbol=>'alice/D', holder=>'alice', data=>'{"d": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>5, pos=>2, auth=>'alice', symbol=>'alice/D', holder=>'alice', data=>'{"d": 2}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>5, pos=>3, auth=>'alice', symbol=>'alice/D', holder=>'alice', data=>'{"d": 3}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>TRUE);
+CALL insert_nft_issue_op(block_num=>5, pos=>4, auth=>'alice', symbol=>'alice/D', holder=>'alice', data=>'{"d": 4}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>6, pos=>1, auth=>'alice', symbol=>'alice/X', holder=>'alice', data=>'{"x": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+-- When
+CALL nfttracker_sync_blocks();
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+WARNING:  Error processing action register in block 1: Invalid max_count value -1 for NFT type alice/A: must be a positive integer
+WARNING:  Error processing action register in block 1: Invalid max_count value 0 for NFT type alice/B: must be a positive integer
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+WARNING:  Error processing action issue in block 2: Account alice is disallowed to issue NFTs alice/A
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 3...
+WARNING:  Error processing action issue in block 3: Account alice is disallowed to issue NFTs alice/B
+NOTICE:  nfttracker processed block 3 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 4...
+NOTICE:  nfttracker processed block 4 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 5...
+NOTICE:  nfttracker processed block 5 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 6...
+NOTICE:  nfttracker processed block 6 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 6.
+-- Then
+SELECT creator, owner, symbol, name, max_count, issuers FROM types_view;
+ creator | owner | symbol | name | max_count | issuers 
+---------+-------+--------+------+-----------+---------
+ alice   | alice | C      | test |         1 | {alice}
+ alice   | alice | D      | test |         3 | {alice}
+ alice   | alice | X      | test |    (null) | {alice}
+(3 rows)
+
+SELECT updated_at = created_at FROM types_view;
+ ?column? 
+----------
+ t
+ t
+ t
+(3 rows)
+
+SELECT creator, owner, symbol, holder, data, tags, soulbound FROM instances_view;
+ creator | owner | symbol | holder |   data   | tags | soulbound 
+---------+-------+--------+--------+----------+------+-----------
+ alice   | alice | C      | alice  | {"c": 1} | {}   | f
+ alice   | alice | C      | alice  | {"c": 2} | {}   | f
+ alice   | alice | D      | alice  | {"d": 1} | {}   | f
+ alice   | alice | D      | alice  | {"d": 2} | {}   | f
+ alice   | alice | D      | alice  | {"d": 3} | {}   | t
+ alice   | alice | D      | alice  | {"d": 4} | {}   | f
+ alice   | alice | X      | alice  | {"x": 1} | {}   | f
+(7 rows)
+
+SELECT updated_at = created_at FROM instances_view;
+ ?column? 
+----------
+ t
+ t
+ t
+ t
+ t
+ t
+ t
+(7 rows)
+

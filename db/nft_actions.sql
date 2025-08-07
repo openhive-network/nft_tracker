@@ -137,6 +137,9 @@ BEGIN
     WHEN unique_violation THEN
       GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
       RAISE EXCEPTION 'NFT type % already exists', _json->>'symbol' USING DETAIL = err_msg;
+    WHEN check_violation THEN
+      GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
+      RAISE EXCEPTION 'Invalid max_count value % for NFT type %: must be a positive integer', _json->>'max_count', _json->>'symbol' USING DETAIL = err_msg;
     WHEN OTHERS THEN
       RAISE;
   END;

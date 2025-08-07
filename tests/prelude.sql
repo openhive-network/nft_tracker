@@ -15,7 +15,7 @@ BEGIN
         to_jsonb(symbol)::text,
         to_jsonb(owner)::text,
         to_jsonb(issuers)::text,
-        to_jsonb(max_count)::text
+        coalesce(to_jsonb(max_count)::text, 'null')
     )::jsonb);
 END;
 $$;

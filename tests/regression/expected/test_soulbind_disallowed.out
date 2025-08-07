@@ -41,7 +41,7 @@ NOTICE:  Blocks limit reached. Exiting application main loop at processed block:
 SELECT name, issuers FROM types_view;
  name | issuers 
 ------+---------
- test | 
+ test | (null)
 (1 row)
 
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;

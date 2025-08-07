@@ -50,5 +50,5 @@ else
     VERBOSITY="--set=VERBOSITY=terse"
 fi
 
-"$@" "$VERBOSITY" -d "$DB_NAME" 2>&1 | sed \
+"$@" "$VERBOSITY" -P 'null=(null)' -d "$DB_NAME" 2>&1 | sed \
     -E 's/nfttracker processed block ([0-9]+) successfully in [0-9.]+ s/nfttracker processed block \1 successfully in _ s/'
