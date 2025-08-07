@@ -3,7 +3,7 @@ all: test
 
 .PHONY: test
 test:
-	psql -d postgres -U haf_admin -H localhost -f ../../db/builtin_roles.sql
+	psql -d postgres -U haf_admin -h localhost -f ../../db/builtin_roles.sql
 	VERBOSE=$(VERBOSE) KEEP_DB=$(KEEP_DB) /usr/lib/postgresql/17/lib/pgxs/src/test/regress/pg_regress \
 	--host=localhost \
 	--user=haf_admin \
