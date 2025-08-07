@@ -210,11 +210,15 @@ AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
   _count BIGINT;
+  _issuers hive.account_name_type[];
 BEGIN
   _symbol := _json->>'symbol';
   IF NOT nfttracker_app.is_owner(_symbol, _account) THEN
     RAISE EXCEPTION '% is disallowed to modify NFT type %', _account, _json->>'symbol';
   END IF;
+  SELECT array_agg(i) INTO _issuers FROM jsonb_array_elements_text(_json->'issuers') AS i;
+  CALL nfttracker_app.require_account_exists(_json->>'owner');
+  CALL nfttracker_app.require_accounts_exists(_issuers);
   WITH json_fields AS (
     SELECT
       _symbol.name AS symbol_name,
