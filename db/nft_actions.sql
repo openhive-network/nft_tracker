@@ -100,6 +100,32 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE nfttracker_app.require_account_exists(
+  IN _account hive.account_name_type
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM hafd.accounts WHERE name = _account) THEN
+    RAISE EXCEPTION 'Account % does not exist', _account;
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE nfttracker_app.require_accounts_exists(
+  IN _accounts hive.account_name_type[]
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  _account hive.account_name_type;
+BEGIN
+  FOR _account IN SELECT UNNEST(_accounts) LOOP
+    CALL nfttracker_app.require_account_exists(_account);
+  END LOOP;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.register(
   IN _block_num INT,
   IN _account hive.account_name_type,
@@ -111,12 +137,16 @@ VOLATILE
 AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
+  _issuers hive.account_name_type[];
   err_msg TEXT;
 BEGIN
   _symbol := _json->>'symbol';
   IF _symbol.namespace <> _account THEN
     RAISE EXCEPTION '% is disallowed to register NFT types in namespace %', _account, _symbol.namespace;
   END IF;
+  SELECT array_agg(i) INTO _issuers FROM jsonb_array_elements_text(_json->'issuers') AS i;
+  CALL nfttracker_app.require_account_exists(_json->>'owner');
+  CALL nfttracker_app.require_accounts_exists(_issuers);
   BEGIN
     WITH json_fields AS (
       SELECT
