@@ -2,6 +2,8 @@
 -- Given
 CALL insert_nft_register_op(block_num=>1, pos=>1, auth=>'alice', symbol=>'alice/A', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
 CALL insert_nft_register_op(block_num=>1, pos=>2, auth=>'alice', symbol=>'alice/B', name=>'diff', owner=>'bob', issuers=>ARRAY['bob'], max_count=>10);
+CALL insert_nft_register_op(block_num=>2, pos=>1, auth=>'bob', symbol=>'bob/A', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
+CALL insert_nft_register_op(block_num=>2, pos=>2, auth=>'bob', symbol=>'bob/B', name=>'diff', owner=>'bob', issuers=>ARRAY['bob'], max_count=>10);
 -- When
 CALL nfttracker_sync_blocks();
 NOTICE:  Last block processed by application: 0
@@ -14,19 +16,26 @@ WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A
 NOTICE:  nfttracker processing block: 1...
 NOTICE:  nfttracker processed block 1 successfully in _ s
     
-NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 1.
+NOTICE:  nfttracker processing block: 2...
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
 -- Then
-SELECT creator, owner, symbol::TEXT, name::TEXT, max_count, issuers::TEXT[] FROM types_view;
+SELECT creator, owner, symbol, name, max_count, issuers FROM types_view;
  creator | owner | symbol | name | max_count | issuers 
 ---------+-------+--------+------+-----------+---------
  alice   | alice | A      | test |        12 | {alice}
  alice   | bob   | B      | diff |        10 | {bob}
-(2 rows)
+ bob     | alice | A      | test |        12 | {alice}
+ bob     | bob   | B      | diff |        10 | {bob}
+(4 rows)
 
 SELECT updated_at = created_at FROM types_view;
  ?column? 
 ----------
  t
  t
-(2 rows)
+ t
+ t
+(4 rows)
 

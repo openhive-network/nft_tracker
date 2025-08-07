@@ -89,48 +89,57 @@ VOLATILE
 AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
+  err_msg TEXT;
 BEGIN
   _symbol := _json->>'symbol';
   IF _symbol.namespace <> _account THEN
     RAISE EXCEPTION '% is disallowed to register NFT types in namespace %', _account, _symbol.namespace;
   END IF;
-  WITH json_fields AS (
-    SELECT
-      _symbol.name AS symbol_name,
-      j.name,
-      j.max_count,
-      j.owner,
-      j.issuers
-    FROM jsonb_to_record(_json) AS j(name text, max_count int, owner hive.account_name_type, issuers hive.account_name_type[])
-  ),
-  new_type AS (
-    INSERT INTO nfttracker_app.types(
-      creator,
-      owner,
-      symbol,
-      name,
-      max_count,
-      created_at,
-      updated_at
+  BEGIN
+    WITH json_fields AS (
+      SELECT
+        _symbol.name AS symbol_name,
+        j.name,
+        j.max_count,
+        j.owner,
+        j.issuers
+      FROM jsonb_to_record(_json) AS j(name text, max_count int, owner hive.account_name_type, issuers hive.account_name_type[])
+    ),
+    new_type AS (
+      INSERT INTO nfttracker_app.types(
+        creator,
+        owner,
+        symbol,
+        name,
+        max_count,
+        created_at,
+        updated_at
+      )
+      SELECT
+        a.id,
+        o.id,
+        j.symbol_name,
+        j.name,
+        j.max_count,
+        b.created_at,
+        b.created_at
+      FROM json_fields AS j
+      JOIN hafd.blocks AS b ON b.num = _block_num
+      JOIN hafd.accounts AS o ON o.name = j.owner
+      JOIN hafd.accounts AS a ON a.name = _account
+      RETURNING id, (SELECT issuers FROM json_fields LIMIT 1) AS issuers
     )
-    SELECT
-      a.id,
-      o.id,
-      j.symbol_name,
-      j.name,
-      j.max_count,
-      b.created_at,
-      b.created_at
-    FROM json_fields AS j
-    JOIN hafd.blocks AS b ON b.num = _block_num
-    JOIN hafd.accounts AS o ON o.name = j.owner
-    JOIN hafd.accounts AS a ON a.name = _account
-    RETURNING id, (SELECT issuers FROM json_fields LIMIT 1) AS issuers
-  )
-  INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)
-  SELECT t.id, a.id
-  FROM new_type AS t
-  JOIN hafd.accounts AS a ON a.name = ANY((SELECT issuers FROM json_fields)::hive.account_name_type[]);
+    INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)
+    SELECT t.id, a.id
+    FROM new_type AS t
+    JOIN hafd.accounts AS a ON a.name = ANY((SELECT issuers FROM json_fields)::hive.account_name_type[]);
+  EXCEPTION
+    WHEN unique_violation THEN
+      GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
+      RAISE EXCEPTION 'NFT type % already exists', _json->>'symbol' USING DETAIL = err_msg;
+    WHEN OTHERS THEN
+      RAISE;
+  END;
 END
 $$;
 
