@@ -10,5 +10,5 @@ CALL insert_nft_transfer_op(block_num=>4, auth=>'alice', symbol=>'alice/XYZ', id
 CALL nfttracker_sync_blocks();
 
 -- Then
-SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
-SELECT ALL(updated_at > created_at) FROM instances_view;
+SELECT creator, owner, symbol, holder, data, tags, soulbound FROM instances_view;
+SELECT updated_at > created_at FROM instances_view;

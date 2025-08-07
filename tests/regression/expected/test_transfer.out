@@ -23,17 +23,18 @@ NOTICE:  nfttracker processing block: 3...
 NOTICE:  nfttracker processed block 3 successfully in _ s
     
 NOTICE:  nfttracker processing block: 4...
+WARNING:  Error processing action transfer in block 4: Account alice is disallowed to transfer NFT alice/XYZ:1
 NOTICE:  nfttracker processed block 4 successfully in _ s
     
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 4.
 -- Then
-SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
- creator | owner | symbol | holder  | data | tags | soulbound 
----------+-------+--------+---------+------+------+-----------
- alice   | alice | XYZ    | charlie | {}   | {}   | f
+SELECT creator, owner, symbol, holder, data, tags, soulbound FROM instances_view;
+ creator | owner | symbol | holder | data | tags | soulbound 
+---------+-------+--------+--------+------+------+-----------
+ alice   | alice | XYZ    | bob    | {}   | {}   | f
 (1 row)
 
-SELECT ALL(updated_at > created_at) FROM instances_view;
+SELECT updated_at > created_at FROM instances_view;
  ?column? 
 ----------
  t

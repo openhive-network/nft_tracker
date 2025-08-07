@@ -51,6 +51,33 @@ BEGIN
 END;
 $$;
 
+-- Returns true if given account is NFT instance holder.
+CREATE OR REPLACE FUNCTION nfttracker_app.is_holder(
+  IN _symbol nfttracker_app.symbol,
+  IN _id INT,
+  IN _account hive.account_name_type
+)
+RETURNS bool
+LANGUAGE plpgsql
+STABLE
+AS
+$$
+DECLARE
+  _holder BOOLEAN;
+BEGIN
+  SELECT COUNT(*) > 0 INTO _holder
+    FROM nfttracker_app.instances AS i
+    JOIN nfttracker_app.types AS t ON t.id = i.type_id
+    JOIN hafd.accounts AS a ON a.name = _account
+    JOIN hafd.accounts AS ns ON ns.name = _symbol.namespace
+    WHERE t.symbol = _symbol.name
+      AND t.creator = ns.id
+      AND i.id = _id
+      AND i.holder = a.id;
+  RETURN _holder;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.register(
   IN _block_num INT,
   IN _account hive.account_name_type,
@@ -283,7 +310,15 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
+DECLARE
+  _symbol nfttracker_app.symbol;
+  _id INT;
 BEGIN
+  _symbol := (_json->>'symbol')::nfttracker_app.symbol;
+  _id := (_json->>'id')::INT;
+  IF NOT nfttracker_app.is_holder(_symbol, _id, _account) THEN
+    RAISE EXCEPTION 'Account % is disallowed to transfer NFT %:%', _account, _json->>'symbol', _id;
+  END IF;
   UPDATE nfttracker_app.instances AS i
   SET
     holder = a.id,
