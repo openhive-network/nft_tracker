@@ -78,6 +78,28 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION nfttracker_app.is_max_count_reached(
+  IN _symbol nfttracker_app.symbol
+)
+RETURNS bool
+LANGUAGE plpgsql
+STABLE
+AS
+$$
+DECLARE
+  _max_count INT;
+  _issued_count INT;
+  _type_id INT;
+BEGIN
+  SELECT id, max_count INTO _type_id, _max_count
+    FROM nfttracker_app.types
+    WHERE creator = (SELECT id FROM hafd.accounts WHERE name = _symbol.namespace)
+      AND symbol = _symbol.name;
+  SELECT COUNT(*) INTO _issued_count FROM nfttracker_app.instances WHERE type_id = _type_id;
+  RETURN _max_count IS NOT NULL AND _issued_count >= _max_count;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.register(
   IN _block_num INT,
   IN _account hive.account_name_type,
@@ -227,6 +249,9 @@ AS $$
 BEGIN
   IF NOT nfttracker_app.is_authorized(_json->>'symbol', _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to issue NFTs %', _account, _json->>'symbol';
+  END IF;
+  IF nfttracker_app.is_max_count_reached(_json->>'symbol') THEN
+    RAISE EXCEPTION 'Max number of instances already issued for NFT %', _json->>'symbol';
   END IF;
   WITH json_fields AS (
     SELECT

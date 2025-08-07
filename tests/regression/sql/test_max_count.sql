@@ -16,6 +16,15 @@ CALL insert_nft_issue_op(block_num=>5, pos=>3, auth=>'alice', symbol=>'alice/D',
 CALL insert_nft_issue_op(block_num=>5, pos=>4, auth=>'alice', symbol=>'alice/D', holder=>'alice', data=>'{"d": 4}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 CALL insert_nft_issue_op(block_num=>6, pos=>1, auth=>'alice', symbol=>'alice/X', holder=>'alice', data=>'{"x": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 
+CALL insert_nft_register_op(block_num=>7, pos=>1, auth=>'bob', symbol=>'bob/C', name=>'test2', owner=>'bob', issuers=>ARRAY['bob'], max_count=>2);
+CALL insert_nft_register_op(block_num=>7, pos=>2, auth=>'bob', symbol=>'bob/D', name=>'test2', owner=>'bob', issuers=>ARRAY['bob'], max_count=>2);
+CALL insert_nft_issue_op(block_num=>8, pos=>1, auth=>'bob', symbol=>'bob/C', holder=>'bob', data=>'{"c": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>8, pos=>2, auth=>'bob', symbol=>'bob/C', holder=>'bob', data=>'{"c": 2}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>8, pos=>3, auth=>'bob', symbol=>'bob/C', holder=>'bob', data=>'{"c": 3}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>9, pos=>1, auth=>'bob', symbol=>'bob/D', holder=>'bob', data=>'{"d": 1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>9, pos=>2, auth=>'bob', symbol=>'bob/D', holder=>'bob', data=>'{"d": 2}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>9, pos=>3, auth=>'bob', symbol=>'bob/D', holder=>'bob', data=>'{"d": 3}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
+
 -- When
 CALL nfttracker_sync_blocks();
 
