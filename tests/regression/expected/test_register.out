@@ -4,6 +4,7 @@ CALL insert_nft_register_op(block_num=>1, pos=>1, auth=>'alice', symbol=>'alice/
 CALL insert_nft_register_op(block_num=>1, pos=>2, auth=>'alice', symbol=>'alice/B', name=>'diff', owner=>'bob', issuers=>ARRAY['bob'], max_count=>10);
 CALL insert_nft_register_op(block_num=>2, pos=>1, auth=>'bob', symbol=>'bob/A', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
 CALL insert_nft_register_op(block_num=>2, pos=>2, auth=>'bob', symbol=>'bob/B', name=>'diff', owner=>'bob', issuers=>ARRAY['bob'], max_count=>10);
+CALL insert_nft_register_op(block_num=>3, pos=>1, auth=>'charlie', symbol=>'charlie/X', name=>'', owner=>'charlie', issuers=>ARRAY['charlie'], max_count=>10);
 -- When
 CALL nfttracker_sync_blocks();
 NOTICE:  Last block processed by application: 0
@@ -19,7 +20,11 @@ NOTICE:  nfttracker processed block 1 successfully in _ s
 NOTICE:  nfttracker processing block: 2...
 NOTICE:  nfttracker processed block 2 successfully in _ s
     
-NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
+NOTICE:  nfttracker processing block: 3...
+WARNING:  Error processing action register in block 3: Invalid name value "" for NFT charlie/X: must be a non-empty string
+NOTICE:  nfttracker processed block 3 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 3.
 -- Then
 SELECT creator, owner, symbol, name, max_count, issuers FROM types_view;
  creator | owner | symbol | name | max_count | issuers 

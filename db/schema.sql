@@ -8,6 +8,9 @@ CREATE DOMAIN nfttracker_app.symbol_namespace AS VARCHAR(16);
 CREATE DOMAIN nfttracker_app.positive_integer AS INTEGER
 CHECK (value > 0);
 
+CREATE DOMAIN nfttracker_app.typename AS VARCHAR(255)
+CHECK (length(value) > 0);
+
 CREATE TYPE nfttracker_app.symbol AS (
     namespace nfttracker_app.symbol_namespace,
     name nfttracker_app.symbol_name
@@ -50,7 +53,7 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     creator INTEGER NOT NULL REFERENCES hafd.accounts(id),
     owner INTEGER NOT NULL REFERENCES hafd.accounts(id),
     symbol nfttracker_app.symbol_name NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    name nfttracker_app.typename NOT NULL,
     max_count nfttracker_app.positive_integer,  -- NULL means unlimited,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,

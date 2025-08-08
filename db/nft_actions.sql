@@ -139,6 +139,7 @@ DECLARE
   _symbol nfttracker_app.symbol;
   _issuers hive.account_name_type[];
   err_msg TEXT;
+  err_constraint TEXT;
 BEGIN
   _symbol := _json->>'symbol';
   IF _symbol.namespace <> _account THEN
@@ -190,8 +191,19 @@ BEGIN
       GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
       RAISE EXCEPTION 'NFT type % already exists', _json->>'symbol' USING DETAIL = err_msg;
     WHEN check_violation THEN
-      GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
-      RAISE EXCEPTION 'Invalid max_count value % for NFT type %: must be a positive integer', _json->>'max_count', _json->>'symbol' USING DETAIL = err_msg;
+      GET STACKED DIAGNOSTICS
+        err_msg = MESSAGE_TEXT,
+        err_constraint = CONSTRAINT_NAME;
+      CASE err_constraint
+        WHEN 'positive_integer_check' THEN
+          RAISE EXCEPTION 'Invalid max_count value % for NFT %: must be a positive integer', _json->>'max_count', _json->>'symbol' USING DETAIL = err_msg;
+        WHEN 'typename_check' THEN
+          RAISE EXCEPTION 'Invalid name value "%" for NFT %: must be a non-empty string', _json->>'name', _json->>'symbol' USING DETAIL = err_msg;
+        WHEN 'symbol_name_check' THEN
+          RAISE EXCEPTION 'Invalid symbol value "%" for NFT %: must be a valid symbol', _json->>'symbol', _json->>'symbol' USING DETAIL = err_msg;
+        ELSE
+          RAISE;
+      END CASE;
     WHEN OTHERS THEN
       RAISE;
   END;
