@@ -45,22 +45,26 @@ $$
 DECLARE
   err_msg TEXT;
 BEGIN
-  BEGIN
-    RETURN QUERY
-      SELECT
-        CASE _json->>'action'
-          WHEN 'register' THEN nfttracker_app.register(_block_num, _posting_auth, _json)
-          WHEN 'modify' THEN nfttracker_app.modify(_block_num, _posting_auth, _json)
-          WHEN 'issue' THEN nfttracker_app.issue(_block_num, _posting_auth, _json)
-          WHEN 'soulbind' THEN nfttracker_app.soulbind(_block_num, _posting_auth, _json)
-          WHEN 'set_data' THEN nfttracker_app.set_data(_block_num, _posting_auth, _json)
-          WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _posting_auth, _json)
-        END;
-  EXCEPTION
-    WHEN OTHERS THEN
-      GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
-      RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg;
-  END;
+  IF _json->>'symbol' IS NULL THEN
+    RAISE WARNING 'Symbol is not specified for action % in block %', _json->>'action', _block_num;
+  ELSE
+    BEGIN
+      RETURN QUERY
+        SELECT
+          CASE _json->>'action'
+            WHEN 'register' THEN nfttracker_app.register(_block_num, _posting_auth, _json)
+            WHEN 'modify' THEN nfttracker_app.modify(_block_num, _posting_auth, _json)
+            WHEN 'issue' THEN nfttracker_app.issue(_block_num, _posting_auth, _json)
+            WHEN 'soulbind' THEN nfttracker_app.soulbind(_block_num, _posting_auth, _json)
+            WHEN 'set_data' THEN nfttracker_app.set_data(_block_num, _posting_auth, _json)
+            WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _posting_auth, _json)
+          END;
+    EXCEPTION
+      WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
+        RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg;
+    END;
+  END IF;
 END
 $$;
 
