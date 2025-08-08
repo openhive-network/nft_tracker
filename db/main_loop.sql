@@ -43,33 +43,33 @@ LANGUAGE 'plpgsql' VOLATILE
 AS
 $$
 DECLARE
+  _symbol nfttracker_app.symbol;
   err_msg TEXT;
   err_detail TEXT;
   err_hint TEXT;
 BEGIN
-  IF _json->>'symbol' IS NULL THEN
-    RAISE WARNING 'Symbol is not specified for action % in block %', _json->>'action', _block_num;
-  ELSE
-    BEGIN
-      RETURN QUERY
-        SELECT
-          CASE _json->>'action'
-            WHEN 'register' THEN nfttracker_app.register(_block_num, _posting_auth, _json)
-            WHEN 'modify' THEN nfttracker_app.modify(_block_num, _posting_auth, _json)
-            WHEN 'issue' THEN nfttracker_app.issue(_block_num, _posting_auth, _json)
-            WHEN 'soulbind' THEN nfttracker_app.soulbind(_block_num, _posting_auth, _json)
-            WHEN 'set_data' THEN nfttracker_app.set_data(_block_num, _posting_auth, _json)
-            WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _posting_auth, _json)
-          END;
-    EXCEPTION
-      WHEN OTHERS THEN
-        GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT,
-          err_detail = PG_EXCEPTION_DETAIL,
-          err_hint = PG_EXCEPTION_HINT;
-        RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg
-          USING DETAIL = err_detail, HINT = err_hint;
-    END;
-  END IF;
+  BEGIN
+    IF _json->>'symbol' IS NULL THEN
+      RAISE EXCEPTION 'Symbol is not specified';
+    END IF;
+    RETURN QUERY
+      SELECT
+        CASE _json->>'action'
+          WHEN 'register' THEN nfttracker_app.register(_block_num, _posting_auth, _json)
+          WHEN 'modify' THEN nfttracker_app.modify(_block_num, _posting_auth, _json)
+          WHEN 'issue' THEN nfttracker_app.issue(_block_num, _posting_auth, _json)
+          WHEN 'soulbind' THEN nfttracker_app.soulbind(_block_num, _posting_auth, _json)
+          WHEN 'set_data' THEN nfttracker_app.set_data(_block_num, _posting_auth, _json)
+          WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _posting_auth, _json)
+        END;
+  EXCEPTION
+    WHEN OTHERS THEN
+      GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT,
+        err_detail = PG_EXCEPTION_DETAIL,
+        err_hint = PG_EXCEPTION_HINT;
+      RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg
+        USING DETAIL = err_detail, HINT = err_hint;
+  END;
 END
 $$;
 
