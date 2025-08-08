@@ -57,10 +57,22 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     UNIQUE (creator, symbol)
 );
 
+CREATE OR REPLACE FUNCTION nfttracker_app.namespace_by_id(_id BIGINT)
+RETURNS nfttracker_app.symbol_namespace
+AS $$
+    SELECT a.name
+        FROM nfttracker_app.types AS t
+        JOIN hafd.accounts AS a ON a.id = t.creator
+        WHERE t.id = _id;
+$$ LANGUAGE sql STABLE STRICT;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.prevent_creator_update()
 RETURNS TRIGGER AS $$
+DECLARE
+    _namespace nfttracker_app.symbol_namespace;
 BEGIN
-    RAISE EXCEPTION 'Cannot update creator for type=%.', NEW.id;
+    SELECT nfttracker_app.namespace_by_id(NEW.id) INTO _namespace;
+    RAISE EXCEPTION 'Creator cannot be changed for %/%.', _namespace, NEW.symbol;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -71,8 +83,11 @@ EXECUTE FUNCTION nfttracker_app.prevent_creator_update();
 
 CREATE OR REPLACE FUNCTION nfttracker_app.prevent_symbol_update()
 RETURNS TRIGGER AS $$
+DECLARE
+    _namespace nfttracker_app.symbol_namespace;
 BEGIN
-    RAISE EXCEPTION 'Cannot update symbol for type=%.', NEW.id;
+    SELECT nfttracker_app.namespace_by_id(NEW.id) INTO _namespace;
+    RAISE EXCEPTION 'Symbol cannot be changed for %/%.', _namespace, NEW.symbol;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -83,8 +98,11 @@ EXECUTE FUNCTION nfttracker_app.prevent_symbol_update();
 
 CREATE OR REPLACE FUNCTION nfttracker_app.prevent_increment_max_count()
 RETURNS TRIGGER AS $$
+DECLARE
+    _namespace nfttracker_app.symbol_namespace;
 BEGIN
-    RAISE EXCEPTION 'Cannot increment max_count for type=%.', NEW.id;
+    SELECT nfttracker_app.namespace_by_id(NEW.id) INTO _namespace;
+    RAISE EXCEPTION 'Cannot increment max_count for symbol %/%.', _namespace, NEW.symbol;
 END;
 $$ LANGUAGE plpgsql;
 

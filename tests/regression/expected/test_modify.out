@@ -19,7 +19,7 @@ NOTICE:  nfttracker processing block: 2...
 NOTICE:  nfttracker processed block 2 successfully in _ s
     
 NOTICE:  nfttracker processing block: 3...
-WARNING:  Error processing action modify in block 3: Cannot increment max_count for type=1.
+WARNING:  Error processing action modify in block 3: Cannot increment max_count for symbol alice/ABC.
 NOTICE:  nfttracker processed block 3 successfully in _ s
     
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 3.
