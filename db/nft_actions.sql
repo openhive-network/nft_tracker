@@ -405,7 +405,7 @@ BEGIN
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j."to"
-  WHERE i.id = j.id AND i.type_id = t.id AND NOT i.soulbound;
+  WHERE i.id = j.id AND i.type_id = t.id AND (NOT i.soulbound OR j."to" = 'null');
 END
 $$;
 
