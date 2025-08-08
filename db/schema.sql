@@ -1,7 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS nfttracker_app AUTHORIZATION nfttracker_owner;
 
-CREATE DOMAIN nfttracker_app.symbol_name AS VARCHAR(10)
-CHECK (value ~ '^[A-Z][A-Z0-9]*$');
+CREATE DOMAIN nfttracker_app.symbol_name AS VARCHAR(10);
 
 CREATE DOMAIN nfttracker_app.symbol_namespace AS VARCHAR(16);
 
@@ -34,6 +33,10 @@ BEGIN
 
     IF length(parts[2]) > 10 THEN
         RAISE EXCEPTION 'Symbol name too long. Maximum 10 characters allowed, got: %', parts[2];
+    END IF;
+
+    IF parts[2] !~ '^[A-Z][A-Z0-9]*$' THEN
+        RAISE EXCEPTION 'Invalid symbol name "%"', parts[2];
     END IF;
 
     result.namespace := parts[1];

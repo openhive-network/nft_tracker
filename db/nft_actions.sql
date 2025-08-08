@@ -200,8 +200,6 @@ BEGIN
           RAISE EXCEPTION 'Invalid max_count value % for NFT %: must be a positive integer', _json->>'max_count', _json->>'symbol' USING DETAIL = err_msg;
         WHEN 'typename_check' THEN
           RAISE EXCEPTION 'Invalid name value "%" for NFT %: must be a non-empty string', _json->>'name', _json->>'symbol' USING DETAIL = err_msg;
-        WHEN 'symbol_name_check' THEN
-          RAISE EXCEPTION 'Invalid symbol value "%" for NFT %: must be a valid symbol', _json->>'symbol', _json->>'symbol' USING DETAIL = err_msg;
         ELSE
           RAISE;
       END CASE;
