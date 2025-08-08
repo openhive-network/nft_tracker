@@ -20,16 +20,16 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_modify_op(block_num INT, auth hive.account_name_type, name TEXT, symbol TEXT, owner hive.account_name_type, issuers hive.account_name_type[], max_count INT, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_modify_op(block_num INT, auth hive.account_name_type, symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hive.account_name_type DEFAULT NULL, issuers hive.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    CALL insert_custom_json_operation(block_num, pos, auth, 'NFT', format('{"action": "modify", "name": %s, "symbol": %s, "owner": %s, "issuers": %s, "max_count": %s}',
-        to_jsonb(name)::text,
-        to_jsonb(symbol)::text,
-        to_jsonb(owner)::text,
-        to_jsonb(issuers)::text,
-        to_jsonb(max_count)::text
+    CALL insert_custom_json_operation(block_num, pos, auth, 'NFT', format('{"action": "modify"%s%s%s%s%s}',
+        ', "symbol": ' || to_jsonb(symbol)::text,
+        ', "name": ' || to_jsonb(name)::text,
+        ', "owner": ' || to_jsonb(owner)::text,
+        ', "issuers": ' || to_jsonb(issuers)::text,
+        ', "max_count": ' || to_jsonb(max_count)::text
     )::jsonb);
 END;
 $$;

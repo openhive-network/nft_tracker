@@ -217,8 +217,12 @@ BEGIN
     RAISE EXCEPTION '% is disallowed to modify NFT type %', _account, _json->>'symbol';
   END IF;
   SELECT array_agg(i) INTO _issuers FROM jsonb_array_elements_text(_json->'issuers') AS i;
-  CALL nfttracker_app.require_account_exists(_json->>'owner');
-  CALL nfttracker_app.require_accounts_exists(_issuers);
+  IF _json->>'owner' IS NOT NULL THEN
+    CALL nfttracker_app.require_account_exists(_json->>'owner');
+  END IF;
+  IF _json->>'issuers' IS NOT NULL THEN
+    CALL nfttracker_app.require_accounts_exists(_issuers);
+  END IF;
   WITH json_fields AS (
     SELECT
       _symbol.name AS symbol_name,
@@ -231,13 +235,13 @@ BEGIN
   update_type AS (
     UPDATE nfttracker_app.types AS t
     SET
-      name = j.name,
-      owner = o.id,
-      max_count = j.max_count,
+      name = COALESCE(j.name, t.name),
+      owner = COALESCE(o.id, t.owner),
+      max_count = COALESCE(j.max_count, t.max_count),
       updated_at = b.created_at
     FROM json_fields AS j
     JOIN hafd.blocks AS b ON b.num = _block_num
-    JOIN hafd.accounts AS o ON o.name = j.owner
+    LEFT JOIN hafd.accounts AS o ON o.name = j.owner
     JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
     WHERE t.symbol = j.symbol_name
       AND t.creator = ns.id
@@ -251,16 +255,19 @@ BEGIN
     SELECT t.id, a.id
     FROM update_type AS t
     JOIN hafd.accounts AS a ON a.name = ANY(SELECT issuer FROM issuers)
+    WHERE _json->>'issuers' IS NOT NULL
     ON CONFLICT (type_id, account_id) DO NOTHING
     RETURNING 1
   ),
   delete_issuers AS (
     DELETE FROM nfttracker_app.authorized_issuers AS ai
-    WHERE ai.type_id IN (SELECT id FROM update_type) AND ai.account_id NOT IN (
-      SELECT a.id
-      FROM issuers AS j
-      JOIN hafd.accounts AS a ON a.name = j.issuer
-    )
+    WHERE _json->>'issuers' IS NOT NULL
+      AND ai.type_id IN (SELECT id FROM update_type)
+      AND ai.account_id NOT IN (
+        SELECT a.id
+        FROM issuers AS j
+        JOIN hafd.accounts AS a ON a.name = j.issuer
+      )
     RETURNING 1
   )
   SELECT COUNT(*) INTO _count FROM (
