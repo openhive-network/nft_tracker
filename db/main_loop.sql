@@ -44,6 +44,8 @@ AS
 $$
 DECLARE
   err_msg TEXT;
+  err_detail TEXT;
+  err_hint TEXT;
 BEGIN
   IF _json->>'symbol' IS NULL THEN
     RAISE WARNING 'Symbol is not specified for action % in block %', _json->>'action', _block_num;
@@ -61,8 +63,11 @@ BEGIN
           END;
     EXCEPTION
       WHEN OTHERS THEN
-        GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
-        RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg;
+        GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT,
+          err_detail = PG_EXCEPTION_DETAIL,
+          err_hint = PG_EXCEPTION_HINT;
+        RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg
+          USING DETAIL = err_detail, HINT = err_hint;
     END;
   END IF;
 END
