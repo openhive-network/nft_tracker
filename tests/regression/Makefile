@@ -16,4 +16,4 @@ refresh:
 
 .PHONY: gitadd
 gitadd:
-	git add expected/
+	git add expected/*.out
