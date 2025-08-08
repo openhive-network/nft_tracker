@@ -140,6 +140,7 @@ DECLARE
   _issuers hive.account_name_type[];
   err_msg TEXT;
   err_constraint TEXT;
+  err_column TEXT;
 BEGIN
   _symbol := _json->>'symbol';
   IF _symbol.namespace <> _account THEN
@@ -204,6 +205,11 @@ BEGIN
         ELSE
           RAISE;
       END CASE;
+    WHEN not_null_violation THEN
+      GET STACKED DIAGNOSTICS
+        err_msg = MESSAGE_TEXT,
+        err_column = COLUMN_NAME;
+      RAISE '"%" cannot be empty for NFT %', err_COLUMN, _json->>'symbol' USING DETAIL = err_msg;
     WHEN OTHERS THEN
       RAISE;
   END;
