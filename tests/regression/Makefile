@@ -1,14 +1,22 @@
-.PHONY: all
-all: test
-
-.PHONY: test
-test:
-	psql -d postgres -U haf_admin -h localhost -f ../../db/builtin_roles.sql
-	VERBOSE=$(VERBOSE) KEEP_DB=$(KEEP_DB) /usr/lib/postgresql/17/lib/pgxs/src/test/regress/pg_regress \
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+REGRESS=$(if $(TESTS),$(TESTS),`find sql/test_*.sql -print0 | xargs -0 -I{} basename {} .sql | paste -s -d ' '`)
+REGRESS_OPTS= \
 	--host=localhost \
 	--user=haf_admin \
 	--launcher=./launcher.sh \
-	$(if $(TESTS),$(TESTS),`find sql/test_*.sql -print0 | xargs -0 -I{} basename {} .sql | paste -s -d ' '`)
+
+include $(PGXS)
+
+.PHONY: all
+all: test
+
+.PHONY: setup_db
+setup_db:
+	psql -d postgres -U haf_admin -h localhost -f ../../db/builtin_roles.sql
+
+.PHONY: test
+test: setup_db installcheck
 
 .PHONY: refresh
 refresh:
