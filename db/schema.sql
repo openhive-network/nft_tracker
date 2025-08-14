@@ -1,3 +1,5 @@
+SET ROLE nfttracker_owner;
+
 CREATE SCHEMA IF NOT EXISTS nfttracker_app AUTHORIZATION nfttracker_owner;
 
 CREATE DOMAIN nfttracker_app.symbol_name AS VARCHAR(10);
@@ -53,8 +55,8 @@ CHECK (array_length(value, 1) <= 4);
 
 CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     id BIGSERIAL PRIMARY KEY,
-    creator INTEGER NOT NULL REFERENCES hafd.accounts(id),
-    owner INTEGER NOT NULL REFERENCES hafd.accounts(id),
+    creator INTEGER NOT NULL,
+    owner INTEGER NOT NULL,
     symbol nfttracker_app.symbol_name NOT NULL,
     name nfttracker_app.typename NOT NULL,
     max_count nfttracker_app.positive_integer,  -- NULL means unlimited,
@@ -120,14 +122,14 @@ EXECUTE FUNCTION nfttracker_app.prevent_increment_max_count();
 
 CREATE TABLE IF NOT EXISTS nfttracker_app.authorized_issuers (
     type_id BIGINT NOT NULL REFERENCES nfttracker_app.types(id) ON DELETE CASCADE,
-    account_id INTEGER NOT NULL REFERENCES hafd.accounts(id),
+    account_id INTEGER NOT NULL,
     PRIMARY KEY (type_id, account_id)
 );
 
 CREATE TABLE IF NOT EXISTS nfttracker_app.instances (
     id BIGSERIAL PRIMARY KEY,
     type_id BIGINT NOT NULL REFERENCES nfttracker_app.types(id),
-    holder integer NOT NULL REFERENCES hafd.accounts(id),
+    holder INTEGER NOT NULL,
     data JSONB NOT NULL,
     tags nfttracker_app.tags NOT NULL,
     soulbound BOOLEAN NOT NULL DEFAULT FALSE,

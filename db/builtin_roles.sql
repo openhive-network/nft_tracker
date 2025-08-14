@@ -15,3 +15,6 @@ $$;
 --- Allow to create schemas
 GRANT nfttracker_owner TO haf_admin;
 GRANT nfttracker_user TO nfttracker_owner;
+
+GRANT SELECT ON hafd.accounts TO nfttracker_owner;
+GRANT REFERENCES ON hafd.accounts TO nfttracker_owner;
