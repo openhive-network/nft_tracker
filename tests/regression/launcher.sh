@@ -5,10 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 SETUP_SCRIPT="$PROJECT_ROOT/haf/scripts/setup_db.sh"
 
-PGPORT="${PGPORT:-5432}"
-PGHOST="${PGHOST:-localhost}"
-DB_NAME="${DB_NAME:-nft_regression_test}"
-DB_ADMIN="${DB_ADMIN:-haf_admin}"
+: "${PGPORT:?Error: PGPORT is not defined}"
+: "${PGHOST:?Error: PGHOST is not defined}"
+: "${DB_NAME:?Error: DB_NAME is not defined}"
+: "${DB_ADMIN:?Error: DB_ADMIN is not defined}"
 
 _psql() {
     psql -w -v ON_ERROR_STOP=1 -h localhost -U haf_admin -d "$DB_NAME" "$@"
@@ -29,10 +29,6 @@ cleanup() {
 if [ "$KEEP_DB" != "1" ]; then
     trap cleanup EXIT
 fi
-
-cleanup
-
-quiet _psql -d postgres -c "CREATE DATABASE ${DB_NAME}"
 
 quiet "$SETUP_SCRIPT" \
     --haf-db-name="$DB_NAME" \
