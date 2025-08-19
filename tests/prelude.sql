@@ -173,7 +173,7 @@ AS $$
 DECLARE
     block_count INT;
 BEGIN
-    SELECT MAX(hafd.operation_id_to_block_num(id)) INTO block_count FROM hafd.operations;
+    SELECT COALESCE(MAX(hafd.operation_id_to_block_num(id)), 1) INTO block_count FROM hafd.operations;
     CALL nfttracker_app.main('nfttracker_app', block_count);
 END;
 $$;
