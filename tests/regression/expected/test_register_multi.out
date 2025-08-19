@@ -1,0 +1,43 @@
+-- Check registering new NFT types using multiactions
+-- Given
+CALL insert_nft_ops(block_num=>1, auth=>'alice', ops=>ARRAY[
+  nft_register_op(symbol=>'alice/A', name=>'test1', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12),
+  nft_register_op(symbol=>'alice/B', name=>'test2', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12),
+  nft_register_op(symbol=>'alice/C', name=>'test3', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12),
+  nft_register_op(symbol=>'alice/A', name=>'test1', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12),
+  nft_register_op(symbol=>'alice/B', name=>'test2', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12),
+  nft_register_op(symbol=>'alice/C', name=>'test3', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12)
+]);
+-- When
+CALL nfttracker_sync_blocks();
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+WARNING:  Error processing action register in block 1: NFT type alice/A already exists
+WARNING:  Error processing action register in block 1: NFT type alice/B already exists
+WARNING:  Error processing action register in block 1: NFT type alice/C already exists
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 1.
+-- Then
+SELECT creator, owner, symbol, name, max_count, issuers FROM types_view;
+ creator | owner | symbol | name  | max_count | issuers 
+---------+-------+--------+-------+-----------+---------
+ alice   | alice | A      | test1 |        12 | {alice}
+ alice   | alice | B      | test2 |        12 | {alice}
+ alice   | alice | C      | test3 |        12 | {alice}
+(3 rows)
+
+SELECT updated_at = created_at FROM types_view;
+ ?column? 
+----------
+ t
+ t
+ t
+(3 rows)
+
