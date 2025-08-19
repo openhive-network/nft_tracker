@@ -1,4 +1,7 @@
 BEGIN;
+  GRANT SELECT ON hafd.accounts TO nfttracker_owner;
+  GRANT REFERENCES ON hafd.accounts TO nfttracker_owner;
+
   INSERT INTO hafd.events_queue VALUES
     (0, 'NEW_IRREVERSIBLE', 0),
     (1, 'NEW_IRREVERSIBLE', 1),
