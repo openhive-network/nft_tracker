@@ -73,6 +73,27 @@ BEGIN
 END
 $$;
 
+CREATE OR REPLACE FUNCTION nfttracker_app.process_actions(
+    IN _block_num INT,
+    IN _posting_auth hive.account_name_type,
+    IN _json JSONB
+)
+RETURNS SETOF VOID
+LANGUAGE 'plpgsql' VOLATILE
+AS
+$$
+BEGIN
+  IF jsonb_typeof(_json) = 'object' THEN
+    RETURN QUERY SELECT nfttracker_app.process_action(_block_num, _posting_auth, _json);
+  ELSIF jsonb_typeof(_json) = 'array' THEN
+    RETURN QUERY
+      SELECT nfttracker_app.process_action(_block_num, _posting_auth, j.v)
+      FROM jsonb_array_elements(_json) WITH ORDINALITY AS j(v, idx)
+      ORDER BY idx ASC;
+  END IF;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.block_range_data(
     IN _first_block_num INT,
     IN _last_block_num INT
@@ -101,13 +122,12 @@ BEGIN
     SELECT
       o.block_num,
       COALESCE(o.required_posting_auths[1], NULL)::hive.account_name_type AS posting_auth,
-      o.json->>'action' AS action,
       o.json
     FROM select_ops AS o
   ),
   process AS
   (
-    SELECT nfttracker_app.process_action(o.block_num, o.posting_auth, o.json)
+    SELECT nfttracker_app.process_actions(o.block_num, o.posting_auth, o.json)
     FROM selected_range AS o
   )
   SELECT COUNT(*) FROM process INTO _result;
