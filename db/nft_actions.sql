@@ -100,6 +100,28 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION nfttracker_app.issued_count(
+  IN _symbol nfttracker_app.symbol
+)
+RETURNS INT
+LANGUAGE plpgsql
+STABLE
+AS
+$$
+DECLARE
+  _issued_count INT;
+BEGIN
+  SELECT COUNT(*) INTO _issued_count
+    FROM nfttracker_app.instances
+    WHERE type_id = (
+      SELECT id
+        FROM nfttracker_app.types
+        WHERE symbol = _symbol.name
+          AND creator = (SELECT id FROM hafd.accounts WHERE name = _symbol.namespace));
+  RETURN _issued_count;
+END;
+$$;
+
 CREATE OR REPLACE PROCEDURE nfttracker_app.require_account_exists(
   IN _account hive.account_name_type
 )
@@ -238,6 +260,9 @@ BEGIN
   END IF;
   IF _max_count IS NOT NULL AND _max_count <= 0 THEN
     RAISE EXCEPTION 'Invalid max_count value % for NFT %: must be a positive integer', _json->>'max_count', _json->>'symbol';
+  END IF;
+  IF _max_count IS NOT NULL AND _max_count < nfttracker_app.issued_count(_symbol) THEN
+    RAISE EXCEPTION 'Invalid max_count value % for NFT %: cannot be less than number of issued NFTs', _json->>'max_count', _json->>'symbol';
   END IF;
   IF _name IS NOT NULL AND _name = '' THEN
     RAISE EXCEPTION 'Invalid name value "%" for NFT %: must be a non-empty string', _json->>'name', _json->>'symbol';
