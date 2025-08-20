@@ -138,14 +138,26 @@ AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
   _issuers hive.account_name_type[];
+  _max_count INT;
+  _name TEXT;
   err_msg TEXT;
   err_constraint TEXT;
   err_column TEXT;
 BEGIN
   _symbol := _json->>'symbol';
+  _max_count := _json->>'max_count';
+  _name := _json->>'name';
+
   IF _symbol.namespace <> _account THEN
     RAISE EXCEPTION '% is disallowed to register NFT types in namespace %', _account, _symbol.namespace;
   END IF;
+  IF _max_count IS NOT NULL AND _max_count <= 0 THEN
+    RAISE EXCEPTION 'Invalid max_count value % for NFT %: must be a positive integer', _json->>'max_count', _json->>'symbol';
+  END IF;
+  IF _name IS NULL OR _name = '' THEN
+    RAISE EXCEPTION 'Invalid name value "%" for NFT %: must be a non-empty string', _json->>'name', _json->>'symbol';
+  END IF;
+
   SELECT array_agg(i) INTO _issuers FROM jsonb_array_elements_text(_json->'issuers') AS i;
   CALL nfttracker_app.require_account_exists(_json->>'owner');
   CALL nfttracker_app.require_accounts_exists(_issuers);
@@ -154,10 +166,9 @@ BEGIN
       SELECT
         _symbol.name AS symbol_name,
         j.name,
-        j.max_count,
         j.owner,
         j.issuers
-      FROM jsonb_to_record(_json) AS j(name text, max_count int, owner hive.account_name_type, issuers hive.account_name_type[])
+      FROM jsonb_to_record(_json) AS j(name text, owner hive.account_name_type, issuers hive.account_name_type[])
     ),
     new_type AS (
       INSERT INTO nfttracker_app.types(
@@ -174,7 +185,7 @@ BEGIN
         o.id,
         j.symbol_name,
         j.name,
-        j.max_count,
+        _max_count,
         b.created_at,
         b.created_at
       FROM json_fields AS j
@@ -191,18 +202,6 @@ BEGIN
     WHEN unique_violation THEN
       GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
       RAISE EXCEPTION 'NFT type % already exists', _json->>'symbol' USING DETAIL = err_msg;
-    WHEN check_violation THEN
-      GET STACKED DIAGNOSTICS
-        err_msg = MESSAGE_TEXT,
-        err_constraint = CONSTRAINT_NAME;
-      CASE err_constraint
-        WHEN 'positive_integer_check' THEN
-          RAISE EXCEPTION 'Invalid max_count value % for NFT %: must be a positive integer', _json->>'max_count', _json->>'symbol' USING DETAIL = err_msg;
-        WHEN 'typename_check' THEN
-          RAISE EXCEPTION 'Invalid name value "%" for NFT %: must be a non-empty string', _json->>'name', _json->>'symbol' USING DETAIL = err_msg;
-        ELSE
-          RAISE;
-      END CASE;
     WHEN not_null_violation THEN
       GET STACKED DIAGNOSTICS
         err_msg = MESSAGE_TEXT,
