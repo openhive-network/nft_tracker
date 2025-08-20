@@ -226,11 +226,23 @@ DECLARE
   _symbol nfttracker_app.symbol;
   _count BIGINT;
   _issuers hive.account_name_type[];
+  _max_count INT;
+  _name TEXT;
 BEGIN
   _symbol := _json->>'symbol';
+  _max_count := _json->>'max_count';
+  _name := _json->>'name';
+
   IF NOT nfttracker_app.is_owner(_symbol, _account) THEN
     RAISE EXCEPTION '% is disallowed to modify NFT type %', _account, _json->>'symbol';
   END IF;
+  IF _max_count IS NOT NULL AND _max_count <= 0 THEN
+    RAISE EXCEPTION 'Invalid max_count value % for NFT %: must be a positive integer', _json->>'max_count', _json->>'symbol';
+  END IF;
+  IF _name IS NOT NULL AND _name = '' THEN
+    RAISE EXCEPTION 'Invalid name value "%" for NFT %: must be a non-empty string', _json->>'name', _json->>'symbol';
+  END IF;
+
   SELECT array_agg(i) INTO _issuers FROM jsonb_array_elements_text(_json->'issuers') AS i;
   IF _json->>'owner' IS NOT NULL THEN
     CALL nfttracker_app.require_account_exists(_json->>'owner');
@@ -242,17 +254,15 @@ BEGIN
     SELECT
       _symbol.name AS symbol_name,
       _symbol.namespace AS symbol_namespace,
-      j.name,
-      j.max_count,
       j.owner
-    FROM jsonb_to_record(_json) AS j(symbol text, name text, max_count int, owner hive.account_name_type)
+    FROM jsonb_to_record(_json) AS j(symbol text, owner hive.account_name_type)
   ),
   update_type AS (
     UPDATE nfttracker_app.types AS t
     SET
-      name = COALESCE(j.name, t.name),
+      name = COALESCE(_name, t.name),
       owner = COALESCE(o.id, t.owner),
-      max_count = COALESCE(j.max_count, t.max_count),
+      max_count = COALESCE(_max_count, t.max_count),
       updated_at = b.created_at
     FROM json_fields AS j
     JOIN hafd.blocks AS b ON b.num = _block_num
