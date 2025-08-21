@@ -1,1 +1,2 @@
 tests/regression/results/*.out
+endpoints_openapi

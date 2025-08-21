@@ -1,8 +1,10 @@
-# syntax=docker/dockerfile:1.5
-ARG PSQL_CLIENT_VERSION=14-1
-FROM registry.gitlab.syncad.com/hive/common-ci-configuration/psql:${PSQL_CLIENT_VERSION} AS psql
+FROM registry.gitlab.syncad.com/hive/common-ci-configuration/nginx:ecd325dd43aee24562f59195ef51a20fa15514d4 AS without_tag
 
-FROM psql AS full
+COPY docker/nft_tracker_nginx.conf.template /usr/local/openresty/nginx/conf/nginx.conf.template
+COPY rewrite_rules.conf /usr/local/openresty/nginx/conf/rewrite_rules.conf
+COPY docker/rewriter_entrypoint.sh /entrypoint.sh
+
+CMD ["/entrypoint.sh"]
 
 ARG BUILD_TIME
 ARG GIT_COMMIT_SHA
@@ -18,29 +20,14 @@ LABEL org.opencontainers.image.source="https://gitlab.syncad.com/hive/nft_tracke
 LABEL org.opencontainers.image.revision="$GIT_COMMIT_SHA"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name="NFT Tracker"
-LABEL org.opencontainers.image.title="NFT Tracker Image"
-LABEL org.opencontainers.image.description="Runs NFT Tracker application"
+LABEL org.opencontainers.image.title="NFT Tracker PostgREST URL Rewriter Image"
+LABEL org.opencontainers.image.description="Rewrites REST calls to provide more natural REST URLs than PostgREST alone allows"
 LABEL io.hive.image.branch="$GIT_CURRENT_BRANCH"
 LABEL io.hive.image.commit.log_message="$GIT_LAST_LOG_MESSAGE"
 LABEL io.hive.image.commit.author="$GIT_LAST_COMMITTER"
 LABEL io.hive.image.commit.date="$GIT_LAST_COMMIT_DATE"
 
-USER root
+FROM without_tag AS with_tag
 
-RUN <<EOF
-  set -e
-  mkdir /app
-  chown haf_admin /app
-EOF
-
-USER haf_admin
-
-COPY scripts/install_app.sh /app/scripts/install_app.sh
-COPY scripts/uninstall_app.sh /app/scripts/uninstall_app.sh
-COPY scripts/process_blocks.sh /app/scripts/process_blocks.sh
-COPY db /app/db
-COPY endpoints /app/endpoints
-COPY docker/scripts/block-processing-healthcheck.sh /app/block-processing-healthcheck.sh
-COPY docker/scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
-
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ARG GIT_COMMIT_TAG
+LABEL org.opencontainers.image.version="${GIT_COMMIT_TAG}"
