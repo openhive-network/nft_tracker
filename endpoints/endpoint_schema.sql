@@ -216,24 +216,29 @@ DO $__$
         ],
         "responses": {
           "200": {
-            "description": "Issued NFT instances of given symbol\n\n* Returns `nfttracker_backend.nft_instance`\n",
+            "description": "Issued NFT instances of given symbol\n\n* Returns `nfttracker_endpoints.nft_instance`\n",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nfttracker_endpoints.nft_instance"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/nfttracker_endpoints.nft_instance"
+                  }
                 },
-                "example": {
-                  "id": 1,
-                  "holder": "alice",
-                  "data": "{\"key\": \"value\"}",
-                  "tags": [
-                    "item",
-                    "collectible"
-                  ],
-                  "soulbound": false,
-                  "created_at": "2025-08-22T12:00:00",
-                  "updated_at": "2025-08-22T12:00:00"
-                }
+                "example": [
+                  {
+                    "id": 1,
+                    "holder": "alice",
+                    "data": "{\"key\": \"value\"}",
+                    "tags": [
+                      "item",
+                      "collectible"
+                    ],
+                    "soulbound": false,
+                    "created_at": "2025-08-22T12:00:00",
+                    "updated_at": "2025-08-22T12:00:00"
+                  }
+                ]
               }
             }
           },
@@ -253,22 +258,27 @@ DO $__$
         "operationId": "nfttracker_endpoints.get_nft_types",
         "responses": {
           "200": {
-            "description": "Registered NFT types\n\n* Returns `nfttracker_backend.nft_type`\n",
+            "description": "Registered NFT types\n\n* Returns `nfttracker_endpoints.nft_type`\n",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nfttracker_endpoints.nft_type"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/nfttracker_endpoints.nft_type"
+                  }
                 },
-                "example": {
-                  "id": 1,
-                  "creator": "alice",
-                  "owner": "bob",
-                  "symbol": "TEST",
-                  "name": "Test symbol",
-                  "max_count": 10,
-                  "created_at": "2025-08-22T12:00:00",
-                  "updated_at": "2025-08-22T12:00:00"
-                }
+                "example": [
+                  {
+                    "id": 1,
+                    "creator": "alice",
+                    "owner": "bob",
+                    "symbol": "TEST",
+                    "name": "Test symbol",
+                    "max_count": 10,
+                    "created_at": "2025-08-22T12:00:00",
+                    "updated_at": "2025-08-22T12:00:00"
+                  }
+                ]
               }
             }
           }

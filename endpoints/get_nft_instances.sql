@@ -37,8 +37,10 @@ SET ROLE nfttracker_owner;
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/nfttracker_endpoints.nft_instance'
-            example: {
+              type: array
+              items:
+                $ref: '#/components/schemas/nfttracker_endpoints.nft_instance'
+            example: [{
               "id": 1,
               "holder": "alice",
               "data": "{\"key\": \"value\"}",
@@ -46,7 +48,7 @@ SET ROLE nfttracker_owner;
               "soulbound": false,
               "created_at": "2025-08-22T12:00:00",
               "updated_at": "2025-08-22T12:00:00"
-            }
+            }]
       '404':
         description: |
           creator/symbol combination does not exist
@@ -57,7 +59,7 @@ CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT
 )
-RETURNS nfttracker_endpoints.nft_instance 
+RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end
 LANGUAGE 'plpgsql' STABLE
 AS
@@ -68,23 +70,25 @@ DECLARE
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
-  RETURN (
-    SELECT ROW(
-      i.id,
-      h.name,
-      i.data,
-      i.tags,
-      i.soulbound,
-      i.created_at,
-      i.updated_at
-    )::nfttracker_endpoints.nft_instance
-    FROM nfttracker_app.instances AS i
-    INNER JOIN nfttracker_app.types AS t ON i.type_id = t.id
-    LEFT JOIN hafd.accounts AS h ON i.holder = h.id
-    WHERE t.symbol = _symbol
-      AND t.creator = (SELECT id FROM hafd.accounts WHERE name = _creator)
-    ORDER BY t.id
-    LIMIT 1
+  RETURN COALESCE(
+    ARRAY(
+      SELECT ROW(
+        i.id,
+        h.name,
+        i.data,
+        i.tags,
+        i.soulbound,
+        i.created_at,
+        i.updated_at
+      )::nfttracker_endpoints.nft_instance
+      FROM nfttracker_app.instances AS i
+      INNER JOIN nfttracker_app.types AS t ON i.type_id = t.id
+      LEFT JOIN hafd.accounts AS h ON i.holder = h.id
+      WHERE t.symbol = _symbol
+        AND t.creator = (SELECT id FROM hafd.accounts WHERE name = _creator)
+      ORDER BY i.id
+    ),
+    ARRAY[]::nfttracker_endpoints.nft_instance[]
   );
 END
 $$;

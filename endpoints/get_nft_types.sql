@@ -24,8 +24,10 @@ SET ROLE nfttracker_owner;
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/nfttracker_endpoints.nft_type'
-            example: {
+              type: array
+              items:
+                $ref: '#/components/schemas/nfttracker_endpoints.nft_type'
+            example: [{
               "id": 1,
               "creator": "alice",
               "owner": "bob",
@@ -34,12 +36,12 @@ SET ROLE nfttracker_owner;
               "max_count": 10,
               "created_at": "2025-08-22T12:00:00",
               "updated_at": "2025-08-22T12:00:00"
-            }
+            }]
  */
 -- openapi-generated-code-begin
 DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_types;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_types()
-RETURNS nfttracker_endpoints.nft_type 
+RETURNS nfttracker_endpoints.nft_type[] 
 -- openapi-generated-code-end
 LANGUAGE 'plpgsql' STABLE
 AS
@@ -47,26 +49,28 @@ $$
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
-  RETURN (
-    SELECT ROW(
-      t.id,
-      c.name,
-      o.name,
-      t.symbol,
-      t.name,
-      t.max_count,
-      t.created_at,
-      t.updated_at,
-      ARRAY_AGG(DISTINCT a.name) FILTER (WHERE a.name IS NOT NULL)
-    )::nfttracker_endpoints.nft_type
-    FROM nfttracker_app.types AS t
-    LEFT JOIN nfttracker_app.authorized_issuers AS ai ON t.id = ai.type_id
-    LEFT JOIN hafd.accounts AS a ON ai.account_id = a.id
-    LEFT JOIN hafd.accounts AS c ON t.creator = c.id
-    LEFT JOIN hafd.accounts AS o ON t.owner = o.id
-    GROUP BY t.id, c.name, o.name, t.symbol, t.name, t.max_count, t.created_at, t.updated_at
-    ORDER BY t.id
-    LIMIT 1
+  RETURN COALESCE(
+    ARRAY(
+      SELECT ROW(
+        t.id,
+        c.name,
+        o.name,
+        t.symbol,
+        t.name,
+        t.max_count,
+        t.created_at,
+        t.updated_at,
+        ARRAY_AGG(DISTINCT a.name) FILTER (WHERE a.name IS NOT NULL)
+      )::nfttracker_endpoints.nft_type
+      FROM nfttracker_app.types AS t
+      LEFT JOIN nfttracker_app.authorized_issuers AS ai ON t.id = ai.type_id
+      LEFT JOIN hafd.accounts AS a ON ai.account_id = a.id
+      LEFT JOIN hafd.accounts AS c ON t.creator = c.id
+      LEFT JOIN hafd.accounts AS o ON t.owner = o.id
+      GROUP BY t.id, c.name, o.name, t.symbol, t.name, t.max_count, t.created_at, t.updated_at
+      ORDER BY t.id
+    ),
+    ARRAY[]::nfttracker_endpoints.nft_type[]
   );
 END
 $$;
