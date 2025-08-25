@@ -1,4 +1,4 @@
-SET ROLE nft_owner;
+SET ROLE nfttracker_owner;
 
 /** openapi:paths
 /nfts:
