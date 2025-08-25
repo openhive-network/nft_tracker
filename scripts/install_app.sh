@@ -12,6 +12,7 @@ OPTIONS:
     --postgres-port=PORT                  PostgreSQL port (default: 5432)
     --postgres-user=USERNAME              PostgreSQL user name (default: haf_admin)
     --postgres-url=URL                    PostgreSQL URL (if set, overrides three previous options, empty by default)
+    --swagger-url=URL                     Server URL for OpenAPI documentation (default: localhost)
     --help,-h,-?                          Displays this help message
 EOF
 }
@@ -21,6 +22,7 @@ POSTGRES_HOST=${POSTGRES_HOST:-"localhost"}
 POSTGRES_PORT=${POSTGRES_PORT:-5432}
 POSTGRES_URL=${POSTGRES_URL:-""}
 NFTTRACKER_SCHEMA=${NFTTRACKER_SCHEMA:-"nfttracker_app"}
+SWAGGER_URL=${SWAGGER_URL:-"localhost"}
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -38,6 +40,9 @@ while [ $# -gt 0 ]; do
         ;;
     --schema=*)
         NFTTRACKER_SCHEMA="${1#*=}"
+        ;;
+    --swagger-url=*)
+        SWAGGER_URL="${1#*=}"
         ;;
     --help|-h|-?)
         print_help
@@ -71,7 +76,7 @@ psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/types/
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/types/nft_instance.sql"
 
 # Install endpoint schema and functions
-psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/endpoint_schema.sql"
+psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on -c "SET custom.swagger_url = '$SWAGGER_URL';" -f "$SCRIPTPATH/../endpoints/endpoint_schema.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/get_version.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/get_nft_types.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/get_nft_instances.sql"
