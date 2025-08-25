@@ -1,5 +1,5 @@
 /** openapi:components:schemas
-nfttracker_backend.nft_type:
+nfttracker_endpoints.nft_type:
   type: object
   properties:
     id:
@@ -35,8 +35,8 @@ nfttracker_backend.nft_type:
       description: list of accounts that can issue instance of this NFT type
 */
 -- openapi-generated-code-begin
-DROP TYPE IF EXISTS nfttracker_backend.nft_type CASCADE;
-CREATE TYPE nfttracker_backend.nft_type AS (
+DROP TYPE IF EXISTS nfttracker_endpoints.nft_type CASCADE;
+CREATE TYPE nfttracker_endpoints.nft_type AS (
     "id" INT,
     "creator" TEXT,
     "owner" TEXT,

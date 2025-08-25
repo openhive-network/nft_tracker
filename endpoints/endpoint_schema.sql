@@ -34,7 +34,6 @@ DO $__$
         END IF;
 
         CREATE SCHEMA IF NOT EXISTS nfttracker_endpoints AUTHORIZATION nfttracker_owner;
-        CREATE SCHEMA IF NOT EXISTS nfttracker_backend AUTHORIZATION nfttracker_owner;
 
         EXECUTE FORMAT(
                 'create or replace function nfttracker_endpoints.root() returns json as $_$
@@ -45,7 +44,7 @@ DO $__$
 {
   "components": {
     "schemas": {
-      "nfttracker_backend.nft_type": {
+      "nfttracker_endpoints.nft_type": {
         "type": "object",
         "properties": {
           "id": {
@@ -91,7 +90,7 @@ DO $__$
           }
         }
       },
-      "nfttracker_backend.nft_instance": {
+      "nfttracker_endpoints.nft_instance": {
         "type": "object",
         "properties": {
           "id": {
@@ -221,7 +220,7 @@ DO $__$
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nfttracker_backend.nft_instance"
+                  "$ref": "#/components/schemas/nfttracker_endpoints.nft_instance"
                 },
                 "example": {
                   "id": 1,
@@ -258,7 +257,7 @@ DO $__$
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nfttracker_backend.nft_type"
+                  "$ref": "#/components/schemas/nfttracker_endpoints.nft_type"
                 },
                 "example": {
                   "id": 1,

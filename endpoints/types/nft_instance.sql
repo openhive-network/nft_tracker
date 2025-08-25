@@ -1,5 +1,5 @@
 /** openapi:components:schemas
-nfttracker_backend.nft_instance:
+nfttracker_endpoints.nft_instance:
   type: object
   properties:
     id:
@@ -30,8 +30,8 @@ nfttracker_backend.nft_instance:
       description: the timestamp this instance was last modified
 */
 -- openapi-generated-code-begin
-DROP TYPE IF EXISTS nfttracker_backend.nft_instance CASCADE;
-CREATE TYPE nfttracker_backend.nft_instance AS (
+DROP TYPE IF EXISTS nfttracker_endpoints.nft_instance CASCADE;
+CREATE TYPE nfttracker_endpoints.nft_instance AS (
     "id" INT,
     "holder" TEXT,
     "data" TEXT,

@@ -33,11 +33,11 @@ SET ROLE nfttracker_owner;
         description: |
           Issued NFT instances of given symbol
 
-          * Returns `nfttracker_backend.nft_instance`
+          * Returns `nfttracker_endpoints.nft_instance`
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/nfttracker_backend.nft_instance'
+              $ref: '#/components/schemas/nfttracker_endpoints.nft_instance'
             example: {
               "id": 1,
               "holder": "alice",
@@ -57,7 +57,7 @@ CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT
 )
-RETURNS nfttracker_backend.nft_instance 
+RETURNS nfttracker_endpoints.nft_instance 
 -- openapi-generated-code-end
 LANGUAGE 'plpgsql' STABLE
 AS
@@ -77,7 +77,7 @@ BEGIN
       i.soulbound,
       i.created_at,
       i.updated_at
-    )::nfttracker_backend.nft_instance
+    )::nfttracker_endpoints.nft_instance
     FROM nfttracker_app.instances AS i
     INNER JOIN nfttracker_app.types AS t ON i.type_id = t.id
     LEFT JOIN hafd.accounts AS h ON i.holder = h.id

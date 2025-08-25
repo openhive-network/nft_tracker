@@ -20,11 +20,11 @@ SET ROLE nfttracker_owner;
         description: |
           Registered NFT types
 
-          * Returns `nfttracker_backend.nft_type`
+          * Returns `nfttracker_endpoints.nft_type`
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/nfttracker_backend.nft_type'
+              $ref: '#/components/schemas/nfttracker_endpoints.nft_type'
             example: {
               "id": 1,
               "creator": "alice",
@@ -39,7 +39,7 @@ SET ROLE nfttracker_owner;
 -- openapi-generated-code-begin
 DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_types;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_types()
-RETURNS nfttracker_backend.nft_type 
+RETURNS nfttracker_endpoints.nft_type 
 -- openapi-generated-code-end
 LANGUAGE 'plpgsql' STABLE
 AS
@@ -58,7 +58,7 @@ BEGIN
       t.created_at,
       t.updated_at,
       ARRAY_AGG(DISTINCT a.name) FILTER (WHERE a.name IS NOT NULL)
-    )::nfttracker_backend.nft_type
+    )::nfttracker_endpoints.nft_type
     FROM nfttracker_app.types AS t
     LEFT JOIN nfttracker_app.authorized_issuers AS ai ON t.id = ai.type_id
     LEFT JOIN hafd.accounts AS a ON ai.account_id = a.id
