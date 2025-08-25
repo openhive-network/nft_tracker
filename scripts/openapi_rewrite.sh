@@ -15,8 +15,12 @@ temp_output_file=$(mktemp)
 OUTPUT="$SCRIPTDIR/output"
 
 ENDPOINTS_IN_ORDER="
+../$endpoints/types/nft_type.sql
+../$endpoints/types/nft_instance.sql
 ../$endpoints/endpoint_schema.sql
-../$endpoints/get_version.sql"
+../$endpoints/get_version.sql
+../$endpoints/get_nft_instances.sql
+../$endpoints/get_nft_types.sql"
 
 # Function to reverse the lines for nginx rewrite rules
 reverse_lines() {

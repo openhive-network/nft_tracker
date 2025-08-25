@@ -34,6 +34,7 @@ DO $__$
         END IF;
 
         CREATE SCHEMA IF NOT EXISTS nfttracker_endpoints AUTHORIZATION nfttracker_owner;
+        CREATE SCHEMA IF NOT EXISTS nfttracker_backend AUTHORIZATION nfttracker_owner;
 
         EXECUTE FORMAT(
                 'create or replace function nfttracker_endpoints.root() returns json as $_$
@@ -42,6 +43,94 @@ DO $__$
 -- openapi-generated-code-begin
   openapi json = $$
 {
+  "components": {
+    "schemas": {
+      "nfttracker_backend.nft_type": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "id of NFT type"
+          },
+          "creator": {
+            "type": "string",
+            "description": "account name that registered NFT type"
+          },
+          "owner": {
+            "type": "string",
+            "description": "current owner of NFT type"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "symbol name of registered NFT type"
+          },
+          "name": {
+            "type": "string",
+            "description": "name of registered NFT type"
+          },
+          "max_count": {
+            "type": "integer",
+            "description": "max number of possible issued instances of this NFT type"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "the timestamp when the NFT type was registered"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "the timestamp when the NFT type was last modified"
+          },
+          "authorized_issuers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "list of accounts that can issue instance of this NFT type"
+          }
+        }
+      },
+      "nfttracker_backend.nft_instance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "id of NFT instance"
+          },
+          "holder": {
+            "type": "string",
+            "description": "account currently owning this instance"
+          },
+          "data": {
+            "type": "string",
+            "description": "extra data as JSON"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "extra tags associated with this instance"
+          },
+          "soulbound": {
+            "type": "boolean",
+            "description": "whether this instance is soulbound (cannot be transferred to other account)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "the timestamp when this instance was created"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "the timestamp this instance was last modified"
+          }
+        }
+      }
+    }
+  },
   "openapi": "3.1.0",
   "info": {
     "title": "NFT Tracker",
@@ -94,6 +183,95 @@ DO $__$
           },
           "404": {
             "description": "App not installed"
+          }
+        }
+      }
+    },
+    "/nfts/{creator}/{symbol}": {
+      "get": {
+        "tags": [
+          "NFT"
+        ],
+        "summary": "NFT instances",
+        "description": "Returns issued instances of given NFT symbol.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts/alice/TEST''`\n",
+        "operationId": "nfttracker_endpoints.get_nft_instances",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "name of the account that created the NFT type"
+          },
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "NFT symbol"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issued NFT instances of given symbol\n\n* Returns `nfttracker_backend.nft_instance`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/nfttracker_backend.nft_instance"
+                },
+                "example": {
+                  "id": 1,
+                  "holder": "alice",
+                  "data": "{\"key\": \"value\"}",
+                  "tags": [
+                    "item",
+                    "collectible"
+                  ],
+                  "soulbound": false,
+                  "created_at": "2025-08-22T12:00:00",
+                  "updated_at": "2025-08-22T12:00:00"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "creator/symbol combination does not exist\n"
+          }
+        }
+      }
+    },
+    "/nfts": {
+      "get": {
+        "tags": [
+          "NFT"
+        ],
+        "summary": "NFT types",
+        "description": "Returns registered NFT types.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_types();`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts''`\n",
+        "operationId": "nfttracker_endpoints.get_nft_types",
+        "responses": {
+          "200": {
+            "description": "Registered NFT types\n\n* Returns `nfttracker_backend.nft_type`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/nfttracker_backend.nft_type"
+                },
+                "example": {
+                  "id": 1,
+                  "creator": "alice",
+                  "owner": "bob",
+                  "symbol": "TEST",
+                  "name": "Test symbol",
+                  "max_count": 10,
+                  "created_at": "2025-08-22T12:00:00",
+                  "updated_at": "2025-08-22T12:00:00"
+                }
+              }
+            }
           }
         }
       }

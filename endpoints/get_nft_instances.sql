@@ -1,0 +1,92 @@
+SET ROLE nft_owner;
+
+/** openapi:paths
+/nfts/{creator}/{symbol}:
+  get:
+    tags:
+      - NFT
+    summary: NFT instances
+    description: |
+      Returns issued instances of given NFT symbol.
+
+      SQL example
+      * `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`
+
+      REST call example
+      * `GET ''https://%1$s/nfts-api/nfts/alice/TEST''`
+    operationId: nfttracker_endpoints.get_nft_instances
+    parameters:
+      - in: path
+        name: creator
+        required: true
+        schema:
+          type: string
+        description: name of the account that created the NFT type
+      - in: path
+        name: symbol
+        required: true
+        schema:
+          type: string
+        description: NFT symbol
+    responses:
+      '200':
+        description: |
+          Issued NFT instances of given symbol
+
+          * Returns `nfttracker_backend.nft_instance`
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/nfttracker_backend.nft_instance'
+            example: {
+              "id": 1,
+              "holder": "alice",
+              "data": "{\"key\": \"value\"}",
+              "tags": ["item", "collectible"],
+              "soulbound": false,
+              "created_at": "2025-08-22T12:00:00",
+              "updated_at": "2025-08-22T12:00:00"
+            }
+      '404':
+        description: |
+          creator/symbol combination does not exist
+ */
+-- openapi-generated-code-begin
+DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances;
+CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
+    "creator" TEXT,
+    "symbol" TEXT
+)
+RETURNS nfttracker_backend.nft_instance 
+-- openapi-generated-code-end
+LANGUAGE 'plpgsql' STABLE
+AS
+$$
+DECLARE
+  _creator TEXT := creator;
+  _symbol TEXT := symbol;
+BEGIN
+  PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
+
+  RETURN (
+    SELECT ROW(
+      i.id,
+      h.name,
+      i.data,
+      i.tags,
+      i.soulbound,
+      i.created_at,
+      i.updated_at
+    )::nfttracker_backend.nft_instance
+    FROM nfttracker_app.instances AS i
+    INNER JOIN nfttracker_app.types AS t ON i.type_id = t.id
+    LEFT JOIN hafd.accounts AS h ON i.holder = h.id
+    WHERE t.symbol = _symbol
+      AND t.creator = (SELECT id FROM hafd.accounts WHERE name = _creator)
+    ORDER BY t.id
+    LIMIT 1
+  );
+END
+$$;
+
+RESET ROLE;
