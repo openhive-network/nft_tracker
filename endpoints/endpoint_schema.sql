@@ -212,6 +212,19 @@ DO $__$
               "type": "string"
             },
             "description": "NFT symbol"
+          },
+          {
+            "in": "path",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "default": null,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Only return instances with these tags"
           }
         ],
         "responses": {

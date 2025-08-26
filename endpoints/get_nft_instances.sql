@@ -28,6 +28,15 @@ SET ROLE nfttracker_owner;
         schema:
           type: string
         description: NFT symbol
+      - in: path
+        name: tags
+        required: false
+        schema:
+          default: NULL
+          type: array
+          items:
+            type: string
+        description: Only return instances with these tags
     responses:
       '200':
         description: |
@@ -57,7 +66,8 @@ SET ROLE nfttracker_owner;
 DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "creator" TEXT,
-    "symbol" TEXT
+    "symbol" TEXT,
+    "tags" TEXT[] = NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end
@@ -67,6 +77,7 @@ $$
 DECLARE
   _creator TEXT := creator;
   _symbol TEXT := symbol;
+  _tags TEXT[] := COALESCE(tags, ARRAY[]::TEXT[]);
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
@@ -86,6 +97,7 @@ BEGIN
       LEFT JOIN hafd.accounts AS h ON i.holder = h.id
       WHERE t.symbol = _symbol
         AND t.creator = (SELECT id FROM hafd.accounts WHERE name = _creator)
+        AND i.tags::TEXT[] @> _tags
       ORDER BY i.id
     ),
     ARRAY[]::nfttracker_endpoints.nft_instance[]
