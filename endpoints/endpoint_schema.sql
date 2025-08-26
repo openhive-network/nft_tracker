@@ -219,12 +219,9 @@ DO $__$
             "required": false,
             "schema": {
               "default": null,
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "type": "string"
             },
-            "description": "Only return instances with these tags"
+            "description": "Only return instances with tags matching pattern.\nPattern is a pipe-separated list of comma-separated tags.\nExample: `a,b|x,y|z` will match instances with tags ''a'' and ''b'', ''x'' and ''y'', or ''z''.\n"
           }
         ],
         "responses": {
