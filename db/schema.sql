@@ -152,6 +152,7 @@ CREATE TABLE nfttracker_app.instances (
     updated_at TIMESTAMP NOT NULL
 );
 CREATE INDEX idx_nfts_instances_type_id ON nfttracker_app.instances(type_id);
+CREATE INDEX idx_nfts_instances_tags_gin ON nfttracker_app.instances USING GIN (tags);
 
 CREATE OR REPLACE FUNCTION nfttracker_app.prevent_soulbound_unset()
 RETURNS TRIGGER AS $$
