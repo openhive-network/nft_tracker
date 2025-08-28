@@ -65,7 +65,9 @@ LANGUAGE 'plpgsql' STABLE
 AS
 $$
 BEGIN
-  RETURN nfttracker_endpoints.get_nft_instances_with_tags(creator, symbol, NULL);
+  PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
+
+  RETURN nfttracker_backend.get_nft_instances(creator, symbol, NULL);
 END
 $$;
 

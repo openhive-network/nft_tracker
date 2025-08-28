@@ -75,6 +75,7 @@ psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on -c "SET custom.swagger_url = '$SWAGG
 
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/types/nft_type.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/types/nft_instance.sql"
+psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/backend/get_nft_instances.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/get_version.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/get_nft_types.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../endpoints/get_nft_instances_with_tags.sql"
@@ -84,4 +85,5 @@ echo "Granting permissions..."
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -c "SET ROLE nfttracker_owner; GRANT USAGE ON SCHEMA ${NFTTRACKER_SCHEMA} to nfttracker_user;"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -c "SET ROLE nfttracker_owner; GRANT SELECT ON ALL TABLES IN SCHEMA ${NFTTRACKER_SCHEMA} TO nfttracker_user;"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -c "SET ROLE nfttracker_owner; GRANT USAGE ON SCHEMA nfttracker_endpoints to nfttracker_user;"
+psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -c "SET ROLE nfttracker_owner; GRANT USAGE ON SCHEMA nfttracker_backend to nfttracker_user;"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -c "SET ROLE nfttracker_owner; GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA nfttracker_endpoints TO nfttracker_user;"

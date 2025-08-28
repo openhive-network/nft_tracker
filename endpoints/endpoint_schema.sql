@@ -34,6 +34,7 @@ DO $__$
         END IF;
 
         CREATE SCHEMA IF NOT EXISTS nfttracker_endpoints AUTHORIZATION nfttracker_owner;
+        CREATE SCHEMA IF NOT EXISTS nfttracker_backend AUTHORIZATION nfttracker_owner;
 
         EXECUTE FORMAT(
                 'create or replace function nfttracker_endpoints.root() returns json as $_$
