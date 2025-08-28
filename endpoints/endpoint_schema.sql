@@ -212,13 +212,74 @@ DO $__$
               "type": "string"
             },
             "description": "NFT symbol"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issued NFT instances of given symbol\n\n* Returns `nfttracker_endpoints.nft_instance`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/nfttracker_endpoints.nft_instance"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "holder": "alice",
+                    "data": "{\"key\": \"value\"}",
+                    "tags": [
+                      "item",
+                      "collectible"
+                    ],
+                    "soulbound": false,
+                    "created_at": "2025-08-22T12:00:00",
+                    "updated_at": "2025-08-22T12:00:00"
+                  }
+                ]
+              }
+            }
+          },
+          "404": {
+            "description": "creator/symbol combination does not exist\n"
+          }
+        }
+      }
+    },
+    "/nfts/{creator}/{symbol}/{tags}": {
+      "get": {
+        "tags": [
+          "NFT"
+        ],
+        "summary": "NFT instances",
+        "description": "Returns issued instances of given NFT symbol.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts/alice/TEST''`\n",
+        "operationId": "nfttracker_endpoints.get_nft_instances_with_tags",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "name of the account that created the NFT type"
+          },
+          {
+            "in": "path",
+            "name": "symbol",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "NFT symbol"
           },
           {
             "in": "path",
             "name": "tags",
-            "required": false,
+            "required": true,
             "schema": {
-              "default": null,
               "type": "string"
             },
             "description": "Only return instances with tags matching pattern.\nPattern is a pipe-separated list of comma-separated tags.\nExample: `a,b|x,y|z` will match instances with tags ''a'' and ''b'', ''x'' and ''y'', or ''z''.\n"

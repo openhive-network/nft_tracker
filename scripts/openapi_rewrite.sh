@@ -20,6 +20,7 @@ ENDPOINTS_IN_ORDER="
 ../$endpoints/endpoint_schema.sql
 ../$endpoints/get_version.sql
 ../$endpoints/get_nft_instances.sql
+../$endpoints/get_nft_instances_with_tags.sql
 ../$endpoints/get_nft_types.sql"
 
 # Function to reverse the lines for nginx rewrite rules

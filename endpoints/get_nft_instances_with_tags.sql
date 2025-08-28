@@ -1,7 +1,7 @@
 SET ROLE nfttracker_owner;
 
 /** openapi:paths
-/nfts/{creator}/{symbol}:
+/nfts/{creator}/{symbol}/{tags}:
   get:
     tags:
       - NFT
@@ -14,7 +14,7 @@ SET ROLE nfttracker_owner;
 
       REST call example
       * `GET ''https://%1$s/nfts-api/nfts/alice/TEST''`
-    operationId: nfttracker_endpoints.get_nft_instances
+    operationId: nfttracker_endpoints.get_nft_instances_with_tags
     parameters:
       - in: path
         name: creator
@@ -28,6 +28,15 @@ SET ROLE nfttracker_owner;
         schema:
           type: string
         description: NFT symbol
+      - in: path
+        name: tags
+        required: true
+        schema:
+          type: string
+        description: |
+          Only return instances with tags matching pattern.
+          Pattern is a pipe-separated list of comma-separated tags.
+          Example: `a,b|x,y|z` will match instances with tags ''a'' and ''b'', ''x'' and ''y'', or ''z''.
     responses:
       '200':
         description: |
@@ -54,18 +63,45 @@ SET ROLE nfttracker_owner;
           creator/symbol combination does not exist
  */
 -- openapi-generated-code-begin
-DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances;
-CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
+DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances_with_tags;
+CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances_with_tags(
     "creator" TEXT,
-    "symbol" TEXT
+    "symbol" TEXT,
+    "tags" TEXT
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end
 LANGUAGE 'plpgsql' STABLE
 AS
 $$
+DECLARE
+  _creator TEXT := creator;
+  _symbol TEXT := symbol;
+  _tags TEXT := NULLIF(tags, '');
 BEGIN
-  RETURN nfttracker_endpoints.get_nft_instances_with_tags(creator, symbol, NULL);
+  PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
+
+  RETURN COALESCE(ARRAY(
+    SELECT ROW(
+      i.id,
+      h.name,
+      i.data,
+      i.tags,
+      i.soulbound,
+      i.created_at,
+      i.updated_at
+    )::nfttracker_endpoints.nft_instance
+    FROM nfttracker_app.instances AS i
+    INNER JOIN nfttracker_app.types AS t ON i.type_id = t.id
+    LEFT JOIN hafd.accounts AS h ON i.holder = h.id
+    WHERE t.symbol = _symbol
+      AND t.creator = (SELECT id FROM hafd.accounts WHERE name = _creator)
+      AND (_tags IS NULL OR i.tags::TEXT[] @> ANY(
+        SELECT STRING_TO_ARRAY(t, ',') 
+        FROM UNNEST(STRING_TO_ARRAY(_tags, '|')) AS t
+      ))
+    ORDER BY i.id
+  ), ARRAY[]::nfttracker_endpoints.nft_instance[]);
 END
 $$;
 
