@@ -186,6 +186,43 @@ DO $__$
         }
       }
     },
+    "/nfts": {
+      "get": {
+        "tags": [
+          "NFT"
+        ],
+        "summary": "NFT types",
+        "description": "Returns registered NFT types.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_types();`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts''`\n",
+        "operationId": "nfttracker_endpoints.get_nft_types",
+        "responses": {
+          "200": {
+            "description": "Registered NFT types\n\n* Returns `nfttracker_endpoints.nft_type`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/nfttracker_endpoints.nft_type"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "creator": "alice",
+                    "owner": "bob",
+                    "symbol": "TEST",
+                    "name": "Test symbol",
+                    "max_count": 10,
+                    "created_at": "2025-08-22T12:00:00",
+                    "updated_at": "2025-08-22T12:00:00"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "/nfts/{creator}/{symbol}": {
       "get": {
         "tags": [
@@ -315,43 +352,6 @@ DO $__$
           },
           "404": {
             "description": "creator/symbol combination does not exist\n"
-          }
-        }
-      }
-    },
-    "/nfts": {
-      "get": {
-        "tags": [
-          "NFT"
-        ],
-        "summary": "NFT types",
-        "description": "Returns registered NFT types.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_types();`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts''`\n",
-        "operationId": "nfttracker_endpoints.get_nft_types",
-        "responses": {
-          "200": {
-            "description": "Registered NFT types\n\n* Returns `nfttracker_endpoints.nft_type`\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/nfttracker_endpoints.nft_type"
-                  }
-                },
-                "example": [
-                  {
-                    "id": 1,
-                    "creator": "alice",
-                    "owner": "bob",
-                    "symbol": "TEST",
-                    "name": "Test symbol",
-                    "max_count": 10,
-                    "created_at": "2025-08-22T12:00:00",
-                    "updated_at": "2025-08-22T12:00:00"
-                  }
-                ]
-              }
-            }
           }
         }
       }
