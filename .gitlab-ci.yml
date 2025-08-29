@@ -52,25 +52,6 @@ build_images:
         .
       docker push "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA"
       
-      # Push only the main image to registry.hive.blog (if credentials are available)
-      echo "Current branch: $CI_COMMIT_BRANCH"
-      echo "Is protected: $CI_COMMIT_REF_PROTECTED"
-      echo "Pipeline source: $CI_PIPELINE_SOURCE"
-      
-      if [[ -n "$BLOG_REGISTRY_USER" ]] && [[ -n "$BLOG_REGISTRY_PASSWORD" ]]; then
-        echo "Pushing to registry.hive.blog..."
-        docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_SHORT_SHA" "registry.hive.blog/nft_tracker:$CI_COMMIT_SHORT_SHA"
-        docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA" "registry.hive.blog/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA"
-        echo "Logging in to registry-upload.hive.blog as user: $BLOG_REGISTRY_USER"
-        echo "$BLOG_REGISTRY_PASSWORD" | docker login --username "$BLOG_REGISTRY_USER" --password-stdin registry-upload.hive.blog
-        docker push "registry.hive.blog/nft_tracker:$CI_COMMIT_SHORT_SHA"
-        docker push "registry.hive.blog/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA"
-      else
-        echo "WARNING: BLOG_REGISTRY_USER or BLOG_REGISTRY_PASSWORD not set."
-        echo "Skipping push to registry.hive.blog (this is expected for non-protected branches)"
-        echo "Images are still available in GitLab registry at: registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_SHORT_SHA"
-      fi
-      
       # If on develop branch, also tag and push as 'develop'
       if [[ "$CI_COMMIT_BRANCH" == "develop" ]]; then
         echo "Tagging images with 'develop' tag..."
@@ -78,14 +59,6 @@ build_images:
         docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA" "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:develop"
         docker push "registry.gitlab.syncad.com/hive/nft_tracker:develop"
         docker push "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:develop"
-        
-        # Only push develop tag to registry.hive.blog if we have credentials
-        if [[ -n "$BLOG_REGISTRY_USER" ]] && [[ -n "$BLOG_REGISTRY_PASSWORD" ]]; then
-          docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_SHORT_SHA" "registry.hive.blog/nft_tracker:develop"
-          docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA" "registry.hive.blog/nft_tracker/postgrest-rewriter:develop"
-          docker push "registry.hive.blog/nft_tracker:develop"
-          docker push "registry.hive.blog/nft_tracker/postgrest-rewriter:develop"
-        fi
       fi
   tags:
     - public-runner-docker
@@ -124,21 +97,21 @@ publish_release_images:
         .
       docker push "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG"
       
-      # Push only the main images to registry.hive.blog
-      docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_TAG" "registry.hive.blog/nft_tracker:$CI_COMMIT_TAG"
-      docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG" "registry.hive.blog/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG"
-      docker push "registry.hive.blog/nft_tracker:$CI_COMMIT_TAG"
-      docker push "registry.hive.blog/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG"
+      # Push only the main images to registry-upload.hive.blog
+      docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_TAG" "registry-upload.hive.blog/nft_tracker:$CI_COMMIT_TAG"
+      docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG" "registry-upload.hive.blog/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG"
+      docker push "registry-upload.hive.blog/nft_tracker:$CI_COMMIT_TAG"
+      docker push "registry-upload.hive.blog/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG"
       
       # Also tag with 'latest' if this is a release tag
       docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_TAG" "registry.gitlab.syncad.com/hive/nft_tracker:latest"
       docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG" "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:latest"
-      docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_TAG" "registry.hive.blog/nft_tracker:latest"
-      docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG" "registry.hive.blog/nft_tracker/postgrest-rewriter:latest"
+      docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_TAG" "registry-upload.hive.blog/nft_tracker:latest"
+      docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG" "registry-upload.hive.blog/nft_tracker/postgrest-rewriter:latest"
       docker push "registry.gitlab.syncad.com/hive/nft_tracker:latest"
       docker push "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:latest"
-      docker push "registry.hive.blog/nft_tracker:latest"
-      docker push "registry.hive.blog/nft_tracker/postgrest-rewriter:latest"
+      docker push "registry-upload.hive.blog/nft_tracker:latest"
+      docker push "registry-upload.hive.blog/nft_tracker/postgrest-rewriter:latest"
       
       echo "Successfully published release images with tag: $CI_COMMIT_TAG"
   rules:
