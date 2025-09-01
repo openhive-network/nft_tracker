@@ -5,7 +5,7 @@ CALL insert_nft_ops(block_num=>1, auth=>'alice', ops=>ARRAY[
   nft_register_op(symbol=>'alice/XYZ', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12),
   nft_issue_op(symbol=>'alice/XYZ', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE),
   '{"action": "nonexistent_action"}',
-  nft_transfer_op(symbol=>'alice/XYZ', id=>1, to_account=>'charlie')
+  nft_transfer_op(symbol=>'alice/XYZ', ids=>ARRAY[1], to_account=>'charlie')
 ]);
 
 -- When

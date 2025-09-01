@@ -93,66 +93,66 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_soulbind_op(symbol TEXT, id INT, soulbound bool)
+CREATE OR REPLACE FUNCTION nft_soulbind_op(symbol TEXT, ids INT[], soulbound bool)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    RETURN format('{"action": "soulbind", "symbol": %s, "id": %s, "soulbound": %s}',
+    RETURN format('{"action": "soulbind", "symbol": %s, "ids": %s, "soulbound": %s}',
         to_jsonb(symbol)::text,
-        to_jsonb(id)::text,
+        to_jsonb(ids)::text,
         to_jsonb(soulbound)::text
     );
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hive.account_name_type, symbol TEXT, id INT, soulbound bool, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hive.account_name_type, symbol TEXT, ids INT[], soulbound bool, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    CALL insert_nft_operation(block_num, pos, auth, nft_soulbind_op(symbol, id, soulbound)::jsonb);
+    CALL insert_nft_operation(block_num, pos, auth, nft_soulbind_op(symbol, ids, soulbound)::jsonb);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_set_data_op(symbol TEXT, id INT, data jsonb)
+CREATE OR REPLACE FUNCTION nft_set_data_op(symbol TEXT, ids INT[], data jsonb)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    RETURN format('{"action": "set_data", "symbol": %s, "id": %s, "data": %s}',
+    RETURN format('{"action": "set_data", "symbol": %s, "ids": %s, "data": %s}',
         to_jsonb(symbol)::text,
-        to_jsonb(id)::text,
+        to_jsonb(ids)::text,
         to_jsonb(data)::text
     );
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hive.account_name_type, symbol TEXT, id INT, data jsonb, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hive.account_name_type, symbol TEXT, ids INT[], data jsonb, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    CALL insert_nft_operation(block_num, pos, auth, nft_set_data_op(symbol, id, data)::jsonb);
+    CALL insert_nft_operation(block_num, pos, auth, nft_set_data_op(symbol, ids, data)::jsonb);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_transfer_op(symbol TEXT, id INT, to_account hive.account_name_type)
+CREATE OR REPLACE FUNCTION nft_transfer_op(symbol TEXT, ids INT[], to_account hive.account_name_type)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    RETURN format('{"action": "transfer", "symbol": %s, "id": %s, "to": %s}',
+    RETURN format('{"action": "transfer", "symbol": %s, "ids": %s, "to": %s}',
         to_jsonb(symbol)::text,
-        to_jsonb(id)::text,
+        to_jsonb(ids)::text,
         to_jsonb(to_account)::text
     );
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hive.account_name_type, symbol TEXT, id INT, to_account hive.account_name_type, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hive.account_name_type, symbol TEXT, ids INT[], to_account hive.account_name_type, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    CALL insert_nft_operation(block_num, pos, auth, nft_transfer_op(symbol, id, to_account)::jsonb);
+    CALL insert_nft_operation(block_num, pos, auth, nft_transfer_op(symbol, ids, to_account)::jsonb);
 END;
 $$;
 

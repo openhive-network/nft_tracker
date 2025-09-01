@@ -3,8 +3,8 @@
 -- Given
 CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
 CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/ABC', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
-CALL insert_nft_soulbind_op(block_num=>3, auth=>'alice', symbol=>'alice/ABC', id=>1, soulbound=>TRUE);
-CALL insert_nft_soulbind_op(block_num=>4, auth=>'alice', symbol=>'alice/ABC', id=>1, soulbound=>TRUE);
+CALL insert_nft_soulbind_op(block_num=>3, auth=>'alice', symbol=>'alice/ABC', ids=>ARRAY[1], soulbound=>TRUE);
+CALL insert_nft_soulbind_op(block_num=>4, auth=>'alice', symbol=>'alice/ABC', ids=>ARRAY[1], soulbound=>TRUE);
 
 -- When
 CALL nfttracker_sync_blocks();

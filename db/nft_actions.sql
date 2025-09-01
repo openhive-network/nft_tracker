@@ -51,10 +51,10 @@ BEGIN
 END;
 $$;
 
--- Returns true if given account is NFT instance holder.
+-- Returns true if given account is holder for all given instances.
 CREATE OR REPLACE FUNCTION nfttracker_app.is_holder(
   IN _symbol nfttracker_app.symbol,
-  IN _id INT,
+  IN _ids INT[],
   IN _account hive.account_name_type
 )
 RETURNS bool
@@ -63,18 +63,42 @@ STABLE
 AS
 $$
 DECLARE
-  _holder BOOLEAN;
+  _count INT;
 BEGIN
-  SELECT COUNT(*) > 0 INTO _holder
+  SELECT COUNT(*) INTO _count
     FROM nfttracker_app.instances AS i
     JOIN nfttracker_app.types AS t ON t.id = i.type_id
     JOIN hafd.accounts AS a ON a.name = _account
     JOIN hafd.accounts AS ns ON ns.name = _symbol.namespace
     WHERE t.symbol = _symbol.name
       AND t.creator = ns.id
-      AND i.id = _id
+      AND i.id = ANY(_ids)
       AND i.holder = a.id;
-  RETURN _holder;
+  RETURN _count = ARRAY_LENGTH(_ids, 1);
+END;
+$$;
+
+-- Returns true if all given instances exist.
+CREATE OR REPLACE FUNCTION nfttracker_app.instances_exist(
+  IN _symbol nfttracker_app.symbol,
+  IN _ids INT[]
+)
+RETURNS bool
+LANGUAGE plpgsql
+STABLE
+AS
+$$
+DECLARE
+  _count INT;
+BEGIN
+  SELECT COUNT(*) INTO _count
+    FROM nfttracker_app.instances AS i
+    JOIN nfttracker_app.types AS t ON t.id = i.type_id
+    JOIN hafd.accounts AS ns ON ns.name = _symbol.namespace
+    WHERE t.symbol = _symbol.name
+      AND t.creator = ns.id
+      AND i.id = ANY(_ids);
+  RETURN _count = ARRAY_LENGTH(_ids, 1);
 END;
 $$;
 
@@ -389,19 +413,26 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
+DECLARE
+  _symbol nfttracker_app.symbol := (_json->>'symbol')::nfttracker_app.symbol;
+  _ids INT[];
 BEGIN
-  IF NOT nfttracker_app.is_authorized(_json->>'symbol', _account) THEN
+  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::INT) INTO _ids;
+  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
+    RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
+  END IF;
+  IF NOT nfttracker_app.is_authorized(_symbol, _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to soulbind NFTs %', _account, _json->>'symbol';
   END IF;
   UPDATE nfttracker_app.instances AS i
   SET
     soulbound = j.soulbound,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, id INT, soulbound boolean)
+  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], soulbound boolean)
   JOIN hafd.accounts AS ns ON ns.name = (j.symbol::nfttracker_app.symbol).namespace
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name AND t.creator = ns.id
   JOIN hafd.blocks AS b ON b.num = _block_num
-  WHERE i.id = j.id AND i.type_id = t.id;
+  WHERE i.id = ANY(j.ids) AND i.type_id = t.id;
 END
 $$;
 
@@ -414,18 +445,25 @@ RETURNS VOID
 LANGUAGE 'plpgsql'
 VOLATILE
 AS $$
+DECLARE
+  _symbol nfttracker_app.symbol := (_json->>'symbol')::nfttracker_app.symbol;
+  _ids INT[];
 BEGIN
-  IF NOT nfttracker_app.is_authorized(_json->>'symbol', _account) THEN
+  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::INT) INTO _ids;
+  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
+    RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
+  END IF;
+  IF NOT nfttracker_app.is_authorized(_symbol, _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to set data on NFTs %', _account, _json->>'symbol';
   END IF;
   UPDATE nfttracker_app.instances AS i
   SET
     data = j.data,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, id INT, data jsonb)
+  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], data jsonb)
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
-  WHERE i.id = j.id AND i.type_id = t.id;
+  WHERE i.id = ANY(j.ids) AND i.type_id = t.id;
 END
 $$;
 
@@ -440,22 +478,25 @@ VOLATILE
 AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
-  _id INT;
+  _ids INT[];
 BEGIN
   _symbol := (_json->>'symbol')::nfttracker_app.symbol;
-  _id := (_json->>'id')::INT;
-  IF NOT nfttracker_app.is_holder(_symbol, _id, _account) THEN
-    RAISE EXCEPTION 'Account % is disallowed to transfer NFT %:%', _account, _json->>'symbol', _id;
+  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::INT) INTO _ids;
+  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
+    RAISE EXCEPTION 'NFTs %:% do not exist', _json->>'symbol', _ids;
+  END IF;
+  IF NOT nfttracker_app.is_holder(_symbol, _ids, _account) THEN
+    RAISE EXCEPTION 'Account % is disallowed to transfer NFTs %:%', _account, _json->>'symbol', _ids;
   END IF;
   UPDATE nfttracker_app.instances AS i
   SET
     holder = a.id,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, id INT, "to" hive.account_name_type)
+  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], "to" hive.account_name_type)
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j."to"
-  WHERE i.id = j.id AND i.type_id = t.id AND (NOT i.soulbound OR j."to" = 'null');
+  WHERE i.id = ANY(j.ids) AND i.type_id = t.id AND (NOT i.soulbound OR j."to" = 'null');
 END
 $$;
 
