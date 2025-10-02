@@ -68,6 +68,7 @@ POSTGRES_ACCESS=${POSTGRES_URL:-"postgresql://$POSTGRES_USER@$POSTGRES_HOST:$POS
 process_blocks() {
     local n_blocks="${1:-null}"
     log_file="nfttracker_sync.log"
+    date -u +"%Y-%m-%dT%H:%M:%S+00:00" > /tmp/block_processing_startup_time.txt
     psql "$POSTGRES_ACCESS" -v "ON_ERROR_STOP=on" -v NFTTRACKER_SCHEMA="${NFTTRACKER_SCHEMA}" -c "\timing" -c "CALL ${NFTTRACKER_SCHEMA}.main('${NFTTRACKER_SCHEMA}', $n_blocks);" 2>&1 | tee -i "$log_file"
 }
 
