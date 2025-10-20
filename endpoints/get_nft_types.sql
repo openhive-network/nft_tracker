@@ -13,7 +13,7 @@ SET ROLE nfttracker_owner;
       * `SELECT * FROM nfttracker_endpoints.get_nft_types();`
 
       REST call example
-      * `GET ''https://%1$s/nfts-api/nfts''`
+      * `GET ''https://%1$s/nft-tracker-api/nfts''`
     operationId: nfttracker_endpoints.get_nft_types
     responses:
       '200':

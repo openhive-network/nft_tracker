@@ -13,7 +13,7 @@ SET ROLE nfttracker_owner;
       * `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`
 
       REST call example
-      * `GET ''https://%1$s/nfts-api/nfts/alice/TEST''`
+      * `GET ''https://%1$s/nft-tracker-api/nfts/alice/TEST''`
     operationId: nfttracker_endpoints.get_nft_instances
     parameters:
       - in: path

@@ -193,7 +193,7 @@ DO $__$
           "NFT"
         ],
         "summary": "NFT types",
-        "description": "Returns registered NFT types.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_types();`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts''`\n",
+        "description": "Returns registered NFT types.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_types();`\n\nREST call example\n* `GET ''https://%1$s/nft-tracker-api/nfts''`\n",
         "operationId": "nfttracker_endpoints.get_nft_types",
         "responses": {
           "200": {
@@ -230,7 +230,7 @@ DO $__$
           "NFT"
         ],
         "summary": "NFT instances",
-        "description": "Returns issued instances of given NFT symbol.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts/alice/TEST''`\n",
+        "description": "Returns issued instances of given NFT symbol.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`\n\nREST call example\n* `GET ''https://%1$s/nft-tracker-api/nfts/alice/TEST''`\n",
         "operationId": "nfttracker_endpoints.get_nft_instances",
         "parameters": [
           {
@@ -292,7 +292,7 @@ DO $__$
           "NFT"
         ],
         "summary": "NFT instances",
-        "description": "Returns issued instances of given NFT symbol.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`\n\nREST call example\n* `GET ''https://%1$s/nfts-api/nfts/alice/TEST''`\n",
+        "description": "Returns issued instances of given NFT symbol.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_instances(''alice'', ''TEST'');`\n\nREST call example\n* `GET ''https://%1$s/nft-tracker-api/nfts/alice/TEST''`\n",
         "operationId": "nfttracker_endpoints.get_nft_instances_with_tags",
         "parameters": [
           {
