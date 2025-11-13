@@ -3,7 +3,7 @@ RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    RETURN format('{"type":"custom_json_operation","value":{"id":"%s", "json":%s, "required_auths":[], "required_posting_auths":[%s]}}'::text, id, to_jsonb(data::text)::text, to_jsonb(auth)::text);
+    RETURN format('{"type":"custom_json_operation","value":{"id":"%s", "json":%s, "required_auths":[%s], "required_posting_auths":[]}}'::text, id, to_jsonb(data::text)::text, to_jsonb(auth)::text);
 END;
 $$;
 
