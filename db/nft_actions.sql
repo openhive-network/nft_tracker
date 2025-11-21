@@ -3,7 +3,7 @@ SET ROLE nfttracker_owner;
 -- Returns true if given account is in the authorized issuers list for the given symbol.
 CREATE OR REPLACE FUNCTION nfttracker_app.is_authorized(
   IN _symbol nfttracker_app.symbol,
-  IN _account hive.account_name_type
+  IN _account hafd.account_name_type
 )
   RETURNS bool
   LANGUAGE plpgsql
@@ -30,7 +30,7 @@ $$;
 -- Retruns true if given account is owner of the given symbol.
 CREATE OR REPLACE FUNCTION nfttracker_app.is_owner(
   IN _symbol nfttracker_app.symbol,
-  IN _account hive.account_name_type
+  IN _account hafd.account_name_type
 )
 RETURNS bool
 LANGUAGE plpgsql
@@ -55,7 +55,7 @@ $$;
 CREATE OR REPLACE FUNCTION nfttracker_app.is_holder(
   IN _symbol nfttracker_app.symbol,
   IN _ids INT[],
-  IN _account hive.account_name_type
+  IN _account hafd.account_name_type
 )
 RETURNS bool
 LANGUAGE plpgsql
@@ -147,7 +147,7 @@ END;
 $$;
 
 CREATE OR REPLACE PROCEDURE nfttracker_app.require_account_exists(
-  IN _account hive.account_name_type
+  IN _account hafd.account_name_type
 )
 LANGUAGE plpgsql
 AS $$
@@ -159,12 +159,12 @@ END;
 $$;
 
 CREATE OR REPLACE PROCEDURE nfttracker_app.require_accounts_exists(
-  IN _accounts hive.account_name_type[]
+  IN _accounts hafd.account_name_type[]
 )
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  _account hive.account_name_type;
+  _account hafd.account_name_type;
 BEGIN
   FOR _account IN SELECT UNNEST(_accounts) LOOP
     CALL nfttracker_app.require_account_exists(_account);
@@ -174,7 +174,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.register(
   IN _block_num INT,
-  IN _account hive.account_name_type,
+  IN _account hafd.account_name_type,
   IN _json JSONB
 )
 RETURNS VOID
@@ -183,7 +183,7 @@ VOLATILE
 AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
-  _issuers hive.account_name_type[];
+  _issuers hafd.account_name_type[];
   _max_count INT;
   _name TEXT;
   err_msg TEXT;
@@ -214,7 +214,7 @@ BEGIN
         j.name,
         j.owner,
         j.issuers
-      FROM jsonb_to_record(_json) AS j(name text, owner hive.account_name_type, issuers hive.account_name_type[])
+      FROM jsonb_to_record(_json) AS j(name text, owner hafd.account_name_type, issuers hafd.account_name_type[])
     ),
     new_type AS (
       INSERT INTO nfttracker_app.types(
@@ -243,7 +243,7 @@ BEGIN
     INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)
     SELECT t.id, a.id
     FROM new_type AS t
-    JOIN hafd.accounts AS a ON a.name = ANY((SELECT issuers FROM json_fields)::hive.account_name_type[]);
+    JOIN hafd.accounts AS a ON a.name = ANY((SELECT issuers FROM json_fields)::hafd.account_name_type[]);
   EXCEPTION
     WHEN unique_violation THEN
       GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT;
@@ -261,7 +261,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.modify(
   IN _block_num INT,
-  IN _account hive.account_name_type,
+  IN _account hafd.account_name_type,
   IN _json JSONB
 )
 RETURNS VOID
@@ -271,7 +271,7 @@ AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
   _count BIGINT;
-  _issuers hive.account_name_type[];
+  _issuers hafd.account_name_type[];
   _max_count INT;
   _name TEXT;
 BEGIN
@@ -304,7 +304,7 @@ BEGIN
       _symbol.name AS symbol_name,
       _symbol.namespace AS symbol_namespace,
       j.owner
-    FROM jsonb_to_record(_json) AS j(symbol text, owner hive.account_name_type)
+    FROM jsonb_to_record(_json) AS j(symbol text, owner hafd.account_name_type)
   ),
   update_type AS (
     UPDATE nfttracker_app.types AS t
@@ -354,7 +354,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.issue(
   IN _block_num INT,
-  IN _account hive.account_name_type,
+  IN _account hafd.account_name_type,
   IN _json JSONB
 )
 RETURNS VOID
@@ -376,7 +376,7 @@ BEGIN
       j.tags,
       j.soulbound,
       j.holder
-    FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hive.account_name_type)
+    FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hafd.account_name_type)
   )
   INSERT INTO nfttracker_app.instances (
     type_id,
@@ -406,7 +406,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.soulbind(
   IN _block_num INT,
-  IN _account hive.account_name_type,
+  IN _account hafd.account_name_type,
   IN _json JSONB
 )
 RETURNS VOID
@@ -438,7 +438,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.set_data(
   IN _block_num INT,
-  IN _account hive.account_name_type,
+  IN _account hafd.account_name_type,
   IN _json JSONB
 )
 RETURNS VOID
@@ -469,7 +469,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.transfer(
   IN _block_num INT,
-  IN _account hive.account_name_type,
+  IN _account hafd.account_name_type,
   IN _json JSONB
 )
 RETURNS VOID
@@ -492,7 +492,7 @@ BEGIN
   SET
     holder = a.id,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], "to" hive.account_name_type)
+  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], "to" hafd.account_name_type)
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j."to"
