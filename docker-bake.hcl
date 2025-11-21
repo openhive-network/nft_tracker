@@ -18,7 +18,7 @@ variable "TAG_CI" {
   default = "docker-24.0.1-1"
 }
 variable "PSQL_CLIENT_VERSION" {
-  default = "17"
+  default = "14-1"
 }
 variable "BUILD_TIME" {
   default = "${timestamp()}"

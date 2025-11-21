@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION format_custom_json_operation(block_num INT, pos INT, auth hive.account_name_type, id TEXT, data jsonb)
+CREATE OR REPLACE FUNCTION format_custom_json_operation(block_num INT, pos INT, auth hafd.account_name_type, id TEXT, data jsonb)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -7,7 +7,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION format_nft_operation(block_num INT, pos INT, auth hive.account_name_type, data jsonb)
+CREATE OR REPLACE FUNCTION format_nft_operation(block_num INT, pos INT, auth hafd.account_name_type, data jsonb)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -16,7 +16,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_operation(block_num INT, pos INT, auth hive.account_name_type, data jsonb)
+CREATE OR REPLACE PROCEDURE insert_nft_operation(block_num INT, pos INT, auth hafd.account_name_type, data jsonb)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -24,7 +24,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_register_op(symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hive.account_name_type DEFAULT NULL, issuers hive.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL)
+CREATE OR REPLACE FUNCTION nft_register_op(symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hafd.account_name_type DEFAULT NULL, issuers hafd.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -39,7 +39,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_register_op(block_num INT, auth hive.account_name_type, symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hive.account_name_type DEFAULT NULL, issuers hive.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_register_op(block_num INT, auth hafd.account_name_type, symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hafd.account_name_type DEFAULT NULL, issuers hafd.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -47,7 +47,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_modify_op(symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hive.account_name_type DEFAULT NULL, issuers hive.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL)
+CREATE OR REPLACE FUNCTION nft_modify_op(symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hafd.account_name_type DEFAULT NULL, issuers hafd.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -62,7 +62,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_modify_op(block_num INT, auth hive.account_name_type, symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hive.account_name_type DEFAULT NULL, issuers hive.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_modify_op(block_num INT, auth hafd.account_name_type, symbol TEXT DEFAULT NULL, name TEXT DEFAULT NULL, owner hafd.account_name_type DEFAULT NULL, issuers hafd.account_name_type[] DEFAULT NULL, max_count INT DEFAULT NULL, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -70,7 +70,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_issue_op(symbol TEXT, holder hive.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool)
+CREATE OR REPLACE FUNCTION nft_issue_op(symbol TEXT, holder hafd.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -85,7 +85,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hive.account_name_type, symbol TEXT, holder hive.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hafd.account_name_type, symbol TEXT, holder hafd.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -106,7 +106,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hive.account_name_type, symbol TEXT, ids INT[], soulbound bool, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids INT[], soulbound bool, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -127,7 +127,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hive.account_name_type, symbol TEXT, ids INT[], data jsonb, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids INT[], data jsonb, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -135,7 +135,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_transfer_op(symbol TEXT, ids INT[], to_account hive.account_name_type)
+CREATE OR REPLACE FUNCTION nft_transfer_op(symbol TEXT, ids INT[], to_account hafd.account_name_type)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -148,7 +148,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hive.account_name_type, symbol TEXT, ids INT[], to_account hive.account_name_type, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids INT[], to_account hafd.account_name_type, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -156,7 +156,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_ops(block_num INT, auth hive.account_name_type, ops TEXT[], pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_ops(block_num INT, auth hafd.account_name_type, ops TEXT[], pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 DECLARE
