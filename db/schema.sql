@@ -180,10 +180,10 @@ ON CONFLICT (id) DO NOTHING;
 
 DO $$
 DECLARE
-  synchronization_stages hafd.application_stages;
+  synchronization_stages hive.application_stages;
 BEGIN
   IF NOT hive.app_context_exists('nfttracker_app') THEN
-    synchronization_stages := ARRAY[( 'MASSIVE_PROCESSING', 101, 10000, '3 seconds' ), hive.live_stage()]::hafd.application_stages;
+    synchronization_stages := ARRAY[( 'MASSIVE_PROCESSING', 101, 10000, '3 seconds' ), hive.live_stage()]::hive.application_stages;
 
     PERFORM hive.app_create_context(
       _name => 'nfttracker_app',

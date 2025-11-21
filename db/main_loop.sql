@@ -189,8 +189,8 @@ END
 $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.process_blocks(
-    _context_name hafd.context_name,
-    _block_range hafd.blocks_range, 
+    _context_name hive.context_name,
+    _block_range hive.blocks_range, 
     _logs BOOLEAN = true
 )
 RETURNS VOID
@@ -207,9 +207,9 @@ END
 $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.continueProcessingLoop(
-    _appContext hafd.context_name,
+    _appContext hive.context_name,
     _maxBlockLimit INT,
-    _blocks_range hafd.blocks_range
+    _blocks_range hive.blocks_range
 )
 RETURNS BOOLEAN
 LANGUAGE 'plpgsql'
@@ -239,14 +239,14 @@ $$;
   - To stop it call `nfttracker_app.stopProcessing();` from another session and commit its trasaction.
 */
 CREATE OR REPLACE PROCEDURE nfttracker_app.main(
-    IN _appContext hafd.context_name,
+    IN _appContext hive.context_name,
     IN _maxBlockLimit INT = NULL
 )
 LANGUAGE 'plpgsql'
 AS
 $$
 DECLARE
-  _blocks_range hafd.blocks_range := (0,0);
+  _blocks_range hive.blocks_range := (0,0);
 BEGIN
   IF _maxBlockLimit != NULL THEN
     RAISE NOTICE 'Max block limit is specified as: %', _maxBlockLimit;
