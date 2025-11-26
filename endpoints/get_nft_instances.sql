@@ -57,7 +57,9 @@ SET ROLE nfttracker_owner;
 DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "creator" TEXT,
-    "symbol" TEXT
+    "symbol" TEXT,
+    "limit" INTEGER DEFAULT 50,
+    "last_id" BIGINT DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end
@@ -67,8 +69,9 @@ $$
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
-  RETURN nfttracker_backend.get_nft_instances(creator, symbol, NULL);
+  RETURN nfttracker_backend.get_nft_instances(creator, symbol, NULL, "limit", last_id);
 END
 $$;
 
 RESET ROLE;
+

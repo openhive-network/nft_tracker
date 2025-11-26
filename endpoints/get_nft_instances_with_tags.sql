@@ -67,7 +67,9 @@ DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances_with_tags;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances_with_tags(
     "creator" TEXT,
     "symbol" TEXT,
-    "tags" TEXT
+    "tags" TEXT,
+    "limit" INTEGER DEFAULT 50,
+    "last_id" BIGINT DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end
@@ -77,7 +79,7 @@ $$
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
-  RETURN nfttracker_backend.get_nft_instances(creator, symbol, tags);
+  RETURN nfttracker_backend.get_nft_instances(creator, symbol, tags, "limit", last_id);
 END
 $$;
 

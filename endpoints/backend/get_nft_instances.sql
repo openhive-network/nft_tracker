@@ -4,7 +4,9 @@ DROP FUNCTION IF EXISTS nfttracker_backend.get_nft_instances;
 CREATE OR REPLACE FUNCTION nfttracker_backend.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT,
-    "tags" TEXT
+    "tags" TEXT,
+    "p_limit" INTEGER DEFAULT 50,
+    "p_last_id" BIGINT DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[]
 LANGUAGE 'plpgsql' STABLE
@@ -34,7 +36,9 @@ BEGIN
         SELECT STRING_TO_ARRAY(t, ',') 
         FROM UNNEST(STRING_TO_ARRAY(_tags, '|')) AS t
       ))
+      AND (p_last_id IS NULL OR i.id > p_last_id)
     ORDER BY i.id
+    LIMIT COALESCE(p_limit, 50)
   ), ARRAY[]::nfttracker_endpoints.nft_instance[]);
 END
 $$;

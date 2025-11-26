@@ -1,0 +1,149 @@
+test_name: "test_nft_instances_pagination_with_limit_and_last_id"
+
+includes:
+  - !include tavern_global_config.yaml
+
+marks:
+  - pagination
+  - instances
+
+stages:
+  - name: "Get first instance for creator/symbol"
+    request:
+      url: "{base_url}/rpc/get_nft_instances"
+      method: POST
+      json:
+        creator: "alice"
+        symbol: "C"
+        limit: 1
+    response:
+      status_code: 200
+      json:
+
+  - name: "Get first page of instances"
+    request:
+      url: "{base_url}/rpc/get_nft_instances"
+      method: POST
+      json:
+        creator: "alice"
+        symbol: "C"
+        limit: 2
+    response:
+      status_code: 200
+      save:
+        json:
+          first_instance_id: "[1].id"
+      json:
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "alice"
+          id: 7
+          soulbound: false
+          tags:
+            - "X"
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "bob"
+          id: 8
+          soulbound: false
+          tags:
+            - "X"
+
+  - name: "Get second page of instances"
+    request:
+      url: "{base_url}/rpc/get_nft_instances"
+      method: POST
+      json:
+        creator: "alice"
+        symbol: "C"
+        limit: 2
+        last_id: "{first_instance_id}"
+    response:
+      status_code: 200
+      save:
+        json:
+          second_instance_id: "[1].id"
+      json:
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "dan"
+          id: 9
+          soulbound: false
+          tags:
+            - "X"
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "alice"
+          id: 10
+          soulbound: false
+          tags:
+            - "Y"
+
+  - name: "Get third page of instances"
+    request:
+      url: "{base_url}/rpc/get_nft_instances"
+      method: POST
+      json:
+        creator: "alice"
+        symbol: "C"
+        limit: 2
+        last_id: "{second_instance_id}"
+    response:
+      status_code: 200
+      json:
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "bob"
+          id: 11
+          soulbound: false
+          tags:
+            - "Y"
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "dan"
+          id: 12
+          soulbound: false
+          tags:
+            - "Y"
+
+  - name: "Get first three instances in a single page"
+    request:
+      url: "{base_url}/rpc/get_nft_instances"
+      method: POST
+      json:
+        creator: "alice"
+        symbol: "C"
+        limit: 3
+    response:
+      status_code: 200
+      json:
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "alice"
+          id: 7
+          soulbound: false
+          tags:
+            - "X"
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "bob"
+          id: 8
+          soulbound: false
+          tags:
+            - "X"
+        - created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          data: "{{}}"
+          holder: "dan"
+          id: 9
+          soulbound: false
+          tags:
+            - "X"
