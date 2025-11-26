@@ -1,0 +1,173 @@
+test_name: "test_nft_types_pagination_with_limit_and_last_id"
+
+includes:
+  - !include tavern_global_config.yaml
+
+marks:
+  - pagination
+  - types
+
+stages:
+  - name: "Get first type"
+    request:
+      url: "{base_url}/rpc/get_nft_types"
+      method: POST
+      json:
+        limit: 1
+    response:
+      status_code: 200
+      json:
+        - id: 1
+          creator: "alice"
+          owner: "alice"
+          symbol: "A"
+          name: "Alice type A"
+          max_count: 2
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+
+  - name: "Get first page"
+    request:
+      url: "{base_url}/rpc/get_nft_types"
+      method: POST
+      json:
+        limit: 2
+    response:
+      status_code: 200
+      save:
+        json:
+          first_type_id: "[1].id"
+      json:
+        - id: 1
+          creator: "alice"
+          owner: "alice"
+          symbol: "A"
+          name: "Alice type A"
+          max_count: 2
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+        - id: 2
+          creator: "alice"
+          owner: "alice"
+          symbol: "B"
+          name: "Alice type B"
+          max_count: 4
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+            - "bob"
+
+  - name: "Get second page"
+    request:
+      url: "{base_url}/rpc/get_nft_types"
+      method: POST
+      json:
+        limit: 2
+        last_id: "{first_type_id}"
+    response:
+      status_code: 200
+      save:
+        json:
+          second_type_id: "[1].id"
+      json:
+        - id: 3
+          creator: "alice"
+          owner: "alice"
+          symbol: "C"
+          name: "Alice type C"
+          max_count: 6
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+            - "bob"
+            - "dan"
+        - id: 4
+          creator: "bob"
+          owner: "bob"
+          symbol: "A"
+          name: "Bob type A"
+          max_count: 3
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+
+  - name: "Get third page"
+    request:
+      url: "{base_url}/rpc/get_nft_types"
+      method: POST
+      json:
+        limit: 2
+        last_id: "{second_type_id}"
+    response:
+      status_code: 200
+      json:
+        - id: 5
+          creator: "bob"
+          owner: "bob"
+          symbol: "B"
+          name: "Bob type B"
+          max_count: 2
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "bob"
+        - id: 6
+          creator: "bob"
+          owner: "bob"
+          symbol: "C"
+          name: "Bob type C"
+          max_count: 1
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "dan"
+
+  - name: "Get first three types"
+    request:
+      url: "{base_url}/rpc/get_nft_types"
+      method: POST
+      json:
+        limit: 3
+    response:
+      status_code: 200
+      json:
+        - id: 1
+          creator: "alice"
+          owner: "alice"
+          symbol: "A"
+          name: "Alice type A"
+          max_count: 2
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+        - id: 2
+          creator: "alice"
+          owner: "alice"
+          symbol: "B"
+          name: "Alice type B"
+          max_count: 4
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+            - "bob"
+        - id: 3
+          creator: "alice"
+          owner: "alice"
+          symbol: "C"
+          name: "Alice type C"
+          max_count: 6
+          created_at: "2016-06-22T19:10:48"
+          updated_at: "2016-06-22T19:10:48"
+          authorized_issuers:
+            - "alice"
+            - "bob"
+            - "dan"
