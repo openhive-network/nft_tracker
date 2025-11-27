@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION nfttracker_backend.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT,
     "tags" TEXT,
-    "p_limit" INTEGER DEFAULT 50,
+    "p_limit" INTEGER DEFAULT NULL,
     "p_last_id" BIGINT DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[]
@@ -38,7 +38,7 @@ BEGIN
       ))
       AND (p_last_id IS NULL OR i.id > p_last_id)
     ORDER BY i.id
-    LIMIT COALESCE(p_limit, 50)
+    LIMIT LEAST(p_limit, 1000)
   ), ARRAY[]::nfttracker_endpoints.nft_instance[]);
 END
 $$;

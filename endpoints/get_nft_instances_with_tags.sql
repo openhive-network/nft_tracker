@@ -68,7 +68,7 @@ CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances_with_tags(
     "creator" TEXT,
     "symbol" TEXT,
     "tags" TEXT,
-    "limit" INTEGER DEFAULT 50,
+    "limit" INTEGER DEFAULT NULL,
     "last_id" BIGINT DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
