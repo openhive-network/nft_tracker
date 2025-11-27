@@ -58,7 +58,7 @@ DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT,
-    "limit" INTEGER DEFAULT 50,
+    "limit" INTEGER DEFAULT NULL,
     "last_id" BIGINT DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
