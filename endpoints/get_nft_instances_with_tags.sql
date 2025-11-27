@@ -37,6 +37,20 @@ SET ROLE nfttracker_owner;
           Only return instances with tags matching pattern.
           Pattern is a pipe-separated list of comma-separated tags.
           Example: `a,b|x,y|z` will match instances with tags ''a'' and ''b'', ''x'' and ''y'', or ''z''.
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+        description: |
+          Maximum number of instances to return. The value is capped at 1000, which is also the default.
+      - in: query
+        name: last_id
+        required: false
+        schema:
+          type: integer
+        description: |
+          Return instances with IDs greater than this value.
     responses:
       '200':
         description: |

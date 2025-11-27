@@ -28,6 +28,20 @@ SET ROLE nfttracker_owner;
         schema:
           type: string
         description: NFT symbol
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+        description: |
+          Maximum number of instances to return. The value is capped at 1000, which is also the default
+      - in: query
+        name: last_id
+        required: false
+        schema:
+          type: integer
+        description: |
+          Return instances with IDs greater than this value
     responses:
       '200':
         description: |
