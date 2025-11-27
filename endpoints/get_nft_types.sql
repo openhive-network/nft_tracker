@@ -15,6 +15,21 @@ SET ROLE nfttracker_owner;
       REST call example
       * `GET ''https://%1$s/nft-tracker-api/nfts''`
     operationId: nfttracker_endpoints.get_nft_types
+    parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+        description: |
+          Maximum number of types to return. The value is capped at 1000, which is also the default.
+      - in: query
+        name: last_id
+        required: false
+        schema:
+          type: integer
+        description: |
+          Return types with IDs greater than this value.
     responses:
       '200':
         description: |
