@@ -22,6 +22,19 @@ done
 shift $((OPTIND-1))
 
 if [ "$#" -gt 0 ]; then
+    SQLS="$*"
+else
+    SQLS=$(cd tests/regression && find sql/test_*.sql -print0 | xargs -0 -I{} basename {} .sql | paste -s -d ' ')
+fi
+
+for s in $SQLS; do
+    expected_file="tests/regression/expected/${s}.out"
+    if [ ! -f "$expected_file" ]; then
+        touch "$expected_file"
+    fi
+done
+
+if [ "$#" -gt 0 ]; then
     make -C tests/regression/ test TESTS="$*" $VERBOSE $KEEP_DB
 else
     make -C tests/regression/ test $VERBOSE $KEEP_DB
