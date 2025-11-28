@@ -21,6 +21,7 @@ SET ROLE nfttracker_owner;
         required: false
         schema:
           type: integer
+          default: NULL
         description: |
           Maximum number of types to return. The value is capped at 1000, which is also the default.
       - in: query
@@ -28,6 +29,7 @@ SET ROLE nfttracker_owner;
         required: false
         schema:
           type: integer
+          default: NULL
         description: |
           Return types with IDs greater than this value.
     responses:
@@ -56,8 +58,8 @@ SET ROLE nfttracker_owner;
 -- openapi-generated-code-begin
 DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_types;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_types(
-    "limit" INTEGER DEFAULT NULL,
-    "last_id" BIGINT DEFAULT NULL
+    "limit" INT = NULL,
+    "last_id" INT = NULL
 )
 RETURNS nfttracker_endpoints.nft_type[] 
 -- openapi-generated-code-end

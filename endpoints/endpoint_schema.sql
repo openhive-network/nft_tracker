@@ -195,6 +195,28 @@ DO $__$
         "summary": "NFT types",
         "description": "Returns registered NFT types.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_types();`\n\nREST call example\n* `GET ''https://%1$s/nft-tracker-api/nfts''`\n",
         "operationId": "nfttracker_endpoints.get_nft_types",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Maximum number of types to return. The value is capped at 1000, which is also the default.\n"
+          },
+          {
+            "in": "query",
+            "name": "last_id",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Return types with IDs greater than this value.\n"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Registered NFT types\n\n* Returns `nfttracker_endpoints.nft_type`\n",
@@ -250,6 +272,26 @@ DO $__$
               "type": "string"
             },
             "description": "NFT symbol"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Maximum number of instances to return. The value is capped at 1000, which is also the default\n"
+          },
+          {
+            "in": "query",
+            "name": "last_id",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Return instances with IDs greater than this value\n"
           }
         ],
         "responses": {
@@ -321,6 +363,26 @@ DO $__$
               "type": "string"
             },
             "description": "Only return instances with tags matching pattern.\nPattern is a pipe-separated list of comma-separated tags.\nExample: `a,b|x,y|z` will match instances with tags ''a'' and ''b'', ''x'' and ''y'', or ''z''.\n"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Maximum number of instances to return. The value is capped at 1000, which is also the default.\n"
+          },
+          {
+            "in": "query",
+            "name": "last_id",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Return instances with IDs greater than this value.\n"
           }
         ],
         "responses": {

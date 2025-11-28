@@ -33,6 +33,7 @@ SET ROLE nfttracker_owner;
         required: false
         schema:
           type: integer
+          default: NULL
         description: |
           Maximum number of instances to return. The value is capped at 1000, which is also the default
       - in: query
@@ -40,6 +41,7 @@ SET ROLE nfttracker_owner;
         required: false
         schema:
           type: integer
+          default: NULL
         description: |
           Return instances with IDs greater than this value
     responses:
@@ -72,8 +74,8 @@ DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT,
-    "limit" INTEGER DEFAULT NULL,
-    "last_id" BIGINT DEFAULT NULL
+    "limit" INT = NULL,
+    "last_id" INT = NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end
