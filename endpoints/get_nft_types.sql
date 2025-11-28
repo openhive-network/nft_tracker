@@ -17,7 +17,7 @@ SET ROLE nfttracker_owner;
     operationId: nfttracker_endpoints.get_nft_types
     parameters:
       - in: query
-        name: limit
+        name: count
         required: false
         schema:
           type: integer
@@ -58,7 +58,7 @@ SET ROLE nfttracker_owner;
 -- openapi-generated-code-begin
 DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_types;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_types(
-    "limit" INT = NULL,
+    "count" INT = NULL,
     "last_id" INT = NULL
 )
 RETURNS nfttracker_endpoints.nft_type[] 
@@ -90,7 +90,7 @@ BEGIN
       WHERE ("last_id" IS NULL OR t.id > "last_id")
       GROUP BY t.id, c.name, o.name, t.symbol, t.name, t.max_count, t.created_at, t.updated_at
       ORDER BY t.id
-      LIMIT LEAST("limit", 1000)
+      LIMIT LEAST("count", 1000)
     ),
     ARRAY[]::nfttracker_endpoints.nft_type[]
   );

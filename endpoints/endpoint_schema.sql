@@ -198,7 +198,7 @@ DO $__$
         "parameters": [
           {
             "in": "query",
-            "name": "limit",
+            "name": "count",
             "required": false,
             "schema": {
               "type": "integer",
@@ -275,7 +275,7 @@ DO $__$
           },
           {
             "in": "query",
-            "name": "limit",
+            "name": "count",
             "required": false,
             "schema": {
               "type": "integer",
@@ -366,7 +366,7 @@ DO $__$
           },
           {
             "in": "query",
-            "name": "limit",
+            "name": "count",
             "required": false,
             "schema": {
               "type": "integer",
