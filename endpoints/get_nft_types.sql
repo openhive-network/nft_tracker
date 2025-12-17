@@ -52,9 +52,10 @@ SET ROLE nfttracker_owner;
               "name": "Test symbol",
               "max_count": 10,
               "created_at": "2025-08-22T12:00:00",
-              "updated_at": "2025-08-22T12:00:00"
+              "updated_at": "2025-08-22T12:00:00",
+              "authorized_issuers": ["alice", "bob"]
             }]
- */
+*/
 -- openapi-generated-code-begin
 DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_types;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_types(

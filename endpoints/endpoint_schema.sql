@@ -237,7 +237,11 @@ DO $__$
                     "name": "Test symbol",
                     "max_count": 10,
                     "created_at": "2025-08-22T12:00:00",
-                    "updated_at": "2025-08-22T12:00:00"
+                    "updated_at": "2025-08-22T12:00:00",
+                    "authorized_issuers": [
+                      "alice",
+                      "bob"
+                    ]
                   }
                 ]
               }
