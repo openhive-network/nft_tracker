@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 
-SETUP_DB_SCRIPT="$PROJECT_ROOT/haf/scripts/setup_db.sh"
+SETUP_DB_SCRIPT="$PROJECT_ROOT/scripts/setup_db.sh"
 INSTALL_APP_SCRIPT="$PROJECT_ROOT/scripts/install_app.sh"
 START_POSTGREST_SCRIPT="$PROJECT_ROOT/scripts/start_postgrest.sh"
 POSTGREST_CONF="$PROJECT_ROOT/postgrest.conf"

@@ -1,3 +1,6 @@
 tests/regression/results/*.out
 endpoints_openapi
 venv/
+
+# Downloaded from common-ci-configuration at runtime
+scripts/process_openapi.py

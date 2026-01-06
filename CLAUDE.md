@@ -18,7 +18,7 @@ NFT Tracker is a blockchain-based NFT (Non-Fungible Token) management and tracki
 | Database | PostgreSQL 14+ (via HAF - Hive Application Framework) |
 | API | PostgREST (auto-generates REST from PostgreSQL) |
 | Gateway | Nginx/OpenResty (URL rewriting, proxying) |
-| Framework | HAF submodule for blockchain integration |
+| Framework | HAF database extension (no submodule, uses common-ci-configuration) |
 | Testing | pg_regress (SQL), Tavern (API tests) |
 | CI/CD | GitLab CI with Docker Buildx |
 
@@ -45,6 +45,7 @@ nft_tracker/
 │   ├── uninstall_app.sh         # Remove from PostgreSQL
 │   ├── process_blocks.sh        # Main block processor
 │   ├── start_postgrest.sh       # Start API server
+│   ├── setup_db.sh              # HAF database setup (for tests)
 │   └── ci-helpers/              # CI build scripts
 ├── docker/                      # Docker configs
 │   └── scripts/                 # Entrypoint, healthcheck
@@ -56,7 +57,6 @@ nft_tracker/
 │   ├── api_tests/               # Tavern REST API tests
 │   ├── prelude.sql              # Test helper functions
 │   └── setup.sql                # Test setup
-├── haf/                         # HAF submodule
 ├── Dockerfile                   # Main app container
 ├── Dockerfile.rewriter          # Nginx gateway container
 ├── docker-bake.hcl              # Docker Buildx config
@@ -190,7 +190,7 @@ SWAGGER_URL       # default: localhost
 
 ## Key Patterns
 
-- **OpenAPI from SQL**: Spec embedded in SQL comments, processed by HAF's `process_openapi.py`
+- **OpenAPI from SQL**: Spec embedded in SQL comments, processed by `process_openapi.py` (fetched from common-ci-configuration)
 - **Symbol Format**: `namespace/name` (e.g., `alice/CARD`)
 - **Custom Types**: `nft_type`, `nft_instance` composite types for API responses
 - **Authorization**: Symbol creator manages authorized issuers; instances have single holder
