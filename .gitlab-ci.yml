@@ -3,11 +3,10 @@ stages:
 - publish
 
 variables:
-  # Variables required by Common CI jobs
-  CI_COMMON_JOB_VERSION: "6b9e9e75ec5263939450936a4f8348dfbca3666d"
-  DOCKER_BUILDER_TAG: "$CI_COMMON_JOB_VERSION"
-  DOCKER_DIND_TAG: "$CI_COMMON_JOB_VERSION"
-  IMAGE_REMOVER_TAG: "$CI_COMMON_JOB_VERSION"
+  # Docker image tags - use 'latest' for stable images from common-ci-configuration
+  DOCKER_BUILDER_TAG: "latest"
+  DOCKER_DIND_TAG: "latest"
+  IMAGE_REMOVER_TAG: "latest"
   # common-ci-configuration reference for fetching scripts
   COMMON_CI_REF: "develop"
   # Git configuration
@@ -30,27 +29,7 @@ include:
 
 default:
   hooks:
-    pre_get_sources_script:
-      # Clean corrupt git state left by cancelled pipelines (see GitLab #296638, #4600)
-      - |
-        (
-        cd "${CI_PROJECT_DIR:-/builds}" 2>/dev/null || exit 0
-        echo "pre_get_sources: checking $(pwd) for corrupt git state"
-        if [ -d ".git" ]; then
-          # Remove stale lock files that block git operations
-          find .git -name "*.lock" -delete 2>/dev/null || true
-
-          # Check if main repo is corrupt - if so, remove .git to force fresh clone
-          if ! git rev-parse HEAD >/dev/null 2>&1; then
-            echo "pre_get_sources: main repository corrupt, forcing fresh clone"
-            rm -rf .git
-          else
-            echo "pre_get_sources: existing repo OK"
-          fi
-        else
-          echo "pre_get_sources: no .git directory (fresh workspace)"
-        fi
-        )
+    pre_get_sources_script: !reference [.pre_get_sources_simple, pre_get_sources_script]
 
 build_images:
   extends: .docker_image_builder_job_template
@@ -90,6 +69,7 @@ build_images:
         docker push "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:develop"
       fi
   tags:
+    - standard
     - public-runner-docker
 
 publish_release_images:
@@ -150,4 +130,5 @@ publish_release_images:
       when: on_success
     - when: never
   tags:
+    - standard
     - public-runner-docker
