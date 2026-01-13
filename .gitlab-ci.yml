@@ -42,88 +42,50 @@ build_images:
     echo -e "\e[0Ksection_end:$(date +%s):login\r\e[0K"
   script:
   - |
-    # Build and push with commit SHA tag (this creates all three tags for GitLab registry)
+    # Build and push main image (docker-bake handles tagging: short SHA + latest on develop + version on tags)
     $CI_PROJECT_DIR/scripts/ci-helpers/build_instance.sh \
       "$CI_COMMIT_SHORT_SHA" \
       "$CI_PROJECT_DIR" \
       "$CI_REGISTRY_IMAGE"
 
+    # Build rewriter image tags
+    REWRITER_TAGS="--tag $CI_REGISTRY_IMAGE/postgrest-rewriter:$CI_COMMIT_SHORT_SHA"
+
+    # Tag with 'latest' on develop branch
+    if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
+      REWRITER_TAGS="$REWRITER_TAGS --tag $CI_REGISTRY_IMAGE/postgrest-rewriter:latest"
+    fi
+
+    # Tag with version on protected tags
+    REWRITER_TARGET="without_tag"
+    if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
+      REWRITER_TARGET="with_tag"
+      REWRITER_TAGS="$REWRITER_TAGS --tag $CI_REGISTRY_IMAGE/postgrest-rewriter:$CI_COMMIT_TAG"
+    fi
+
     # Build and push the rewriter image
-    docker build -t "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA" \
-      -f Dockerfile.rewriter \
+    # shellcheck disable=SC2086
+    docker buildx build \
       --build-arg BUILD_TIME="$(date -uIseconds)" \
       --build-arg GIT_COMMIT_SHA="$CI_COMMIT_SHA" \
       --build-arg GIT_CURRENT_BRANCH="$CI_COMMIT_BRANCH" \
       --build-arg GIT_LAST_LOG_MESSAGE="$(git log -1 --pretty=%B)" \
       --build-arg GIT_LAST_COMMITTER="$(git log -1 --pretty='%an <%ae>')" \
       --build-arg GIT_LAST_COMMIT_DATE="$(git log -1 --pretty='%aI')" \
-      .
-    docker push "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA"
-
-    # If on develop branch, also tag and push as 'develop'
-    if [[ "$CI_COMMIT_BRANCH" == "develop" ]]; then
-      echo "Tagging images with 'develop' tag..."
-      docker tag "registry.gitlab.syncad.com/hive/nft_tracker:$CI_COMMIT_SHORT_SHA" "registry.gitlab.syncad.com/hive/nft_tracker:develop"
-      docker tag "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:$CI_COMMIT_SHORT_SHA" "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:develop"
-      docker push "registry.gitlab.syncad.com/hive/nft_tracker:develop"
-      docker push "registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:develop"
-    fi
+      ${CI_COMMIT_TAG:+--build-arg GIT_COMMIT_TAG=$CI_COMMIT_TAG} \
+      --target=$REWRITER_TARGET \
+      $REWRITER_TAGS \
+      --push \
+      -f Dockerfile.rewriter .
   tags:
   - standard
   - public-runner-docker
 
-publish_release_images:
-  extends: .publish_docker_image_template
-  stage: publish
+# Publish to registry.hive.blog - pull/retag/push only, no rebuild
+publish_images:
+  extends: .docker_publish_job_template
   variables:
-    HIVE_BLOG_REGISTRY: registry-upload.hive.blog
-  script:
-  - |
-    echo "Publishing release images for tag: $CI_COMMIT_TAG"
-
-    # Build images with release tag for GitLab registry (creates all three tags)
-    $CI_PROJECT_DIR/scripts/ci-helpers/build_instance.sh \
-      "$CI_COMMIT_TAG" \
-      "$CI_PROJECT_DIR" \
-      "$CI_REGISTRY_IMAGE"
-
-    # Build and push the rewriter image with release tag
-    docker build -t "$CI_REGISTRY_IMAGE/postgrest-rewriter:$CI_COMMIT_TAG" \
-      -f Dockerfile.rewriter \
-      --target with_tag \
-      --build-arg BUILD_TIME="$(date -uIseconds)" \
-      --build-arg GIT_COMMIT_SHA="$CI_COMMIT_SHA" \
-      --build-arg GIT_CURRENT_BRANCH="$CI_COMMIT_BRANCH" \
-      --build-arg GIT_LAST_LOG_MESSAGE="$(git log -1 --pretty=%B)" \
-      --build-arg GIT_LAST_COMMITTER="$(git log -1 --pretty='%an <%ae>')" \
-      --build-arg GIT_LAST_COMMIT_DATE="$(git log -1 --pretty='%aI')" \
-      --build-arg GIT_COMMIT_TAG="$CI_COMMIT_TAG" \
-      .
-    docker push "$CI_REGISTRY_IMAGE/postgrest-rewriter:$CI_COMMIT_TAG"
-
-    # Push to registry-upload.hive.blog (multiple images)
-    docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" "$HIVE_BLOG_REGISTRY/nft_tracker:$CI_COMMIT_TAG"
-    docker tag "$CI_REGISTRY_IMAGE/postgrest-rewriter:$CI_COMMIT_TAG" "$HIVE_BLOG_REGISTRY/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG"
-    docker push "$HIVE_BLOG_REGISTRY/nft_tracker:$CI_COMMIT_TAG"
-    docker push "$HIVE_BLOG_REGISTRY/nft_tracker/postgrest-rewriter:$CI_COMMIT_TAG"
-
-    # Also tag with 'latest' if this is a release tag
-    docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" "$CI_REGISTRY_IMAGE:latest"
-    docker tag "$CI_REGISTRY_IMAGE/postgrest-rewriter:$CI_COMMIT_TAG" "$CI_REGISTRY_IMAGE/postgrest-rewriter:latest"
-    docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" "$HIVE_BLOG_REGISTRY/nft_tracker:latest"
-    docker tag "$CI_REGISTRY_IMAGE/postgrest-rewriter:$CI_COMMIT_TAG" "$HIVE_BLOG_REGISTRY/nft_tracker/postgrest-rewriter:latest"
-    docker push "$CI_REGISTRY_IMAGE:latest"
-    docker push "$CI_REGISTRY_IMAGE/postgrest-rewriter:latest"
-    docker push "$HIVE_BLOG_REGISTRY/nft_tracker:latest"
-    docker push "$HIVE_BLOG_REGISTRY/nft_tracker/postgrest-rewriter:latest"
-
-    echo "Successfully published release images with tag: $CI_COMMIT_TAG"
-  rules:
-  - if: '$CI_COMMIT_TAG =~ /^v[0-9]+.*/ && $CI_COMMIT_REF_PROTECTED == "true"'
-    when: on_success
-  - if: '$CI_COMMIT_TAG =~ /^[0-9]+.*/ && $CI_COMMIT_REF_PROTECTED == "true"'
-    when: on_success
-  - when: never
+    PUBLISH_IMAGES: "nft_tracker postgrest-rewriter"
   tags:
   - standard
   - public-runner-docker
