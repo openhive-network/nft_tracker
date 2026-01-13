@@ -112,10 +112,7 @@ docker buildx bake --provenance=false --progress="$PROGRESS_DISPLAY" "$TARGET"
 
 popd
 
-# On CI pull the image form the registry since it's pushed directly to the registry after build
+# On CI pull the image from the registry since it's pushed directly to the registry after build
 if [[ -n ${CI:-} ]]; then
   docker pull "$REGISTRY:$BUILD_IMAGE_TAG"
 fi
-
-docker tag "$REGISTRY:$BUILD_IMAGE_TAG" "$REGISTRY/instance:$BUILD_IMAGE_TAG"
-docker tag "$REGISTRY:$BUILD_IMAGE_TAG" "$REGISTRY/minimal-instance:$BUILD_IMAGE_TAG"
