@@ -22,7 +22,7 @@ variables:
 include:
 - template: Workflows/Branch-Pipelines.gitlab-ci.yml
 - project: 'hive/common-ci-configuration'
-  ref: develop
+  ref: 0a1e1a9d53d6b1c8ae1bdc652e19740134a359b4
   file:
   - '/templates/base.gitlab-ci.yml'
   - '/templates/docker_image_jobs.gitlab-ci.yml'
