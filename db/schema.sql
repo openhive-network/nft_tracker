@@ -2,27 +2,42 @@ SET ROLE nfttracker_owner;
 
 CREATE SCHEMA IF NOT EXISTS nfttracker_app AUTHORIZATION nfttracker_owner;
 
--- Drop and recreate domains to ensure idempotency
-DROP DOMAIN IF EXISTS nfttracker_app.symbol_name CASCADE;
-CREATE DOMAIN nfttracker_app.symbol_name AS VARCHAR(10);
+-- Create domains idempotently (no data loss on re-run)
+DO $$
+BEGIN
+    CREATE DOMAIN nfttracker_app.symbol_name AS VARCHAR(10);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-DROP DOMAIN IF EXISTS nfttracker_app.symbol_namespace CASCADE;
-CREATE DOMAIN nfttracker_app.symbol_namespace AS VARCHAR(16);
+DO $$
+BEGIN
+    CREATE DOMAIN nfttracker_app.symbol_namespace AS VARCHAR(16);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-DROP DOMAIN IF EXISTS nfttracker_app.positive_integer CASCADE;
-CREATE DOMAIN nfttracker_app.positive_integer AS INTEGER
-CHECK (value > 0);
+DO $$
+BEGIN
+    CREATE DOMAIN nfttracker_app.positive_integer AS INTEGER
+    CHECK (value > 0);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-DROP DOMAIN IF EXISTS nfttracker_app.typename CASCADE;
-CREATE DOMAIN nfttracker_app.typename AS VARCHAR(255)
-CHECK (length(value) > 0);
+DO $$
+BEGIN
+    CREATE DOMAIN nfttracker_app.typename AS VARCHAR(255)
+    CHECK (length(value) > 0);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Drop and recreate composite type
-DROP TYPE IF EXISTS nfttracker_app.symbol CASCADE;
-CREATE TYPE nfttracker_app.symbol AS (
-    namespace nfttracker_app.symbol_namespace,
-    name nfttracker_app.symbol_name
-);
+-- Create composite type idempotently
+DO $$
+BEGIN
+    CREATE TYPE nfttracker_app.symbol AS (
+        namespace nfttracker_app.symbol_namespace,
+        name nfttracker_app.symbol_name
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE OR REPLACE FUNCTION nfttracker_app.text_to_symbol(input TEXT)
 RETURNS nfttracker_app.symbol AS $$
@@ -55,20 +70,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
--- Drop and recreate cast to ensure idempotency
-DROP CAST IF EXISTS (TEXT AS nfttracker_app.symbol);
-CREATE CAST (TEXT AS nfttracker_app.symbol) WITH FUNCTION nfttracker_app.text_to_symbol(TEXT) AS implicit;
+-- Create cast idempotently
+DO $$
+BEGIN
+    CREATE CAST (TEXT AS nfttracker_app.symbol)
+        WITH FUNCTION nfttracker_app.text_to_symbol(TEXT) AS implicit;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-DROP DOMAIN IF EXISTS nfttracker_app.tags CASCADE;
-CREATE DOMAIN nfttracker_app.tags AS VARCHAR(8)[]
-CHECK (array_length(value, 1) <= 4);
+DO $$
+BEGIN
+    CREATE DOMAIN nfttracker_app.tags AS VARCHAR(8)[]
+    CHECK (array_length(value, 1) <= 4);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Drop and recreate tables to ensure correct schema
-DROP TABLE IF EXISTS nfttracker_app.instances CASCADE;
-DROP TABLE IF EXISTS nfttracker_app.authorized_issuers CASCADE;
-DROP TABLE IF EXISTS nfttracker_app.types CASCADE;
-
-CREATE TABLE nfttracker_app.types (
+-- Create tables idempotently (preserves existing data)
+CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     id BIGSERIAL PRIMARY KEY,
     creator INTEGER NOT NULL,
     owner INTEGER NOT NULL,
@@ -135,13 +153,13 @@ FOR EACH ROW
 WHEN (NEW.max_count > OLD.max_count)
 EXECUTE FUNCTION nfttracker_app.prevent_increment_max_count();
 
-CREATE TABLE nfttracker_app.authorized_issuers (
+CREATE TABLE IF NOT EXISTS nfttracker_app.authorized_issuers (
     type_id BIGINT NOT NULL REFERENCES nfttracker_app.types(id) ON DELETE CASCADE,
     account_id INTEGER NOT NULL,
     PRIMARY KEY (type_id, account_id)
 );
 
-CREATE TABLE nfttracker_app.instances (
+CREATE TABLE IF NOT EXISTS nfttracker_app.instances (
     id BIGSERIAL PRIMARY KEY,
     type_id BIGINT NOT NULL REFERENCES nfttracker_app.types(id),
     holder INTEGER NOT NULL,
@@ -151,8 +169,8 @@ CREATE TABLE nfttracker_app.instances (
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
-CREATE INDEX idx_nfts_instances_type_id ON nfttracker_app.instances(type_id);
-CREATE INDEX idx_nfts_instances_tags_gin ON nfttracker_app.instances USING GIN (tags);
+CREATE INDEX IF NOT EXISTS idx_nfts_instances_type_id ON nfttracker_app.instances(type_id);
+CREATE INDEX IF NOT EXISTS idx_nfts_instances_tags_gin ON nfttracker_app.instances USING GIN (tags);
 
 CREATE OR REPLACE FUNCTION nfttracker_app.prevent_soulbound_unset()
 RETURNS TRIGGER AS $$
