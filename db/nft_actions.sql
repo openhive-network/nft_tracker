@@ -124,7 +124,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION nfttracker_app.issued_count(
+CREATE OR REPLACE FUNCTION nfttracker_app.issued_count(
   IN _symbol nfttracker_app.symbol
 )
 RETURNS INT
