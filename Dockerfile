@@ -2,6 +2,13 @@
 ARG PSQL_CLIENT_VERSION=14-1
 FROM registry.gitlab.syncad.com/hive/common-ci-configuration/psql:${PSQL_CLIENT_VERSION} AS psql
 
+FROM psql AS version-injection
+COPY . /tmp/src
+WORKDIR /tmp/src
+RUN API_VERSION="$(git describe --tags --abbrev=0 2>/dev/null || echo dev)" \
+    && sed -i 's|"version": "[^"]*"|"version": "'"$API_VERSION"'"|' endpoints/endpoint_schema.sql \
+    && sed -i 's|^  version: .*|  version: '"$API_VERSION"'|' endpoints/endpoint_schema.sql
+
 FROM psql AS full
 
 ARG BUILD_TIME
@@ -39,7 +46,7 @@ COPY scripts/install_app.sh /app/scripts/install_app.sh
 COPY scripts/uninstall_app.sh /app/scripts/uninstall_app.sh
 COPY scripts/process_blocks.sh /app/scripts/process_blocks.sh
 COPY db /app/db
-COPY endpoints /app/endpoints
+COPY --from=version-injection /tmp/src/endpoints /app/endpoints
 COPY docker/scripts/block-processing-healthcheck.sh /app/block-processing-healthcheck.sh
 COPY docker/scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
 
