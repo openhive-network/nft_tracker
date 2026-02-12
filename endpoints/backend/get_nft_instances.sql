@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION nfttracker_backend.get_nft_instances(
     "symbol" TEXT,
     "tags" TEXT,
     "p_count" INTEGER DEFAULT NULL,
-    "p_last_id" BIGINT DEFAULT NULL
+    "p_last_id" NUMERIC DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[]
 LANGUAGE 'plpgsql' STABLE
@@ -19,7 +19,7 @@ DECLARE
 BEGIN
   RETURN COALESCE(ARRAY(
     SELECT ROW(
-      i.id,
+      i.id::TEXT,
       h.name,
       i.data,
       i.tags,
@@ -33,7 +33,7 @@ BEGIN
     WHERE t.symbol = _symbol
       AND t.creator = (SELECT id FROM hafd.accounts WHERE name = _creator)
       AND (_tags IS NULL OR i.tags::TEXT[] @> ANY(
-        SELECT STRING_TO_ARRAY(t, ',') 
+        SELECT STRING_TO_ARRAY(t, ',')
         FROM UNNEST(STRING_TO_ARRAY(_tags, '|')) AS t
       ))
       AND (p_last_id IS NULL OR i.id > p_last_id)

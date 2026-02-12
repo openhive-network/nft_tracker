@@ -9,14 +9,14 @@ CALL insert_nft_issue_op(block_num=>2, pos=>2, auth=>'alice', symbol=>'alice/X',
 CALL insert_nft_issue_op(block_num=>2, pos=>3, auth=>'alice', symbol=>'alice/Z', holder=>'alice', data=>'{"_":0}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 CALL insert_nft_issue_op(block_num=>2, pos=>4, auth=>'alice', symbol=>'alice/Y', holder=>'alice', data=>'{"y":1}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 CALL insert_nft_issue_op(block_num=>2, pos=>5, auth=>'alice', symbol=>'alice/Y', holder=>'alice', data=>'{"y":2}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
-CALL insert_nft_set_data_op(block_num=>3, pos=>1, auth=>'alice', symbol=>'alice/X', ids=>ARRAY[1,2], data=>'{"x": true}'::jsonb);
-CALL insert_nft_set_data_op(block_num=>3, pos=>2, auth=>'alice', symbol=>'alice/Z', ids=>ARRAY[3,0], data=>'{"z": true}'::jsonb);
-CALL insert_nft_set_data_op(block_num=>3, pos=>3, auth=>'alice', symbol=>'alice/Y', ids=>ARRAY[4,5], data=>'{"y": true}'::jsonb);
+CALL insert_nft_set_data_op(block_num=>3, pos=>1, auth=>'alice', symbol=>'alice/X', ids=>ARRAY[expected_instance_id(2,1,1), expected_instance_id(2,2,1)], data=>'{"x": true}'::jsonb);
+CALL insert_nft_set_data_op(block_num=>3, pos=>2, auth=>'alice', symbol=>'alice/Z', ids=>ARRAY[expected_instance_id(2,3,3), 0::NUMERIC], data=>'{"z": true}'::jsonb);
+CALL insert_nft_set_data_op(block_num=>3, pos=>3, auth=>'alice', symbol=>'alice/Y', ids=>ARRAY[expected_instance_id(2,4,2), expected_instance_id(2,5,2)], data=>'{"y": true}'::jsonb);
 
 -- When
 CALL nfttracker_sync_blocks();
 
 -- Then
 SELECT creator, owner, symbol::TEXT, holder, data, tags, soulbound FROM instances_view;
-SELECT updated_at > created_at FROM instances_view WHERE id<>3;
-SELECT updated_at = created_at FROM instances_view WHERE id=3;
+SELECT updated_at > created_at FROM instances_view WHERE id<>expected_instance_id(2,3,3);
+SELECT updated_at = created_at FROM instances_view WHERE id=expected_instance_id(2,3,3);
