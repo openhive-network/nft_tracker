@@ -37,7 +37,7 @@ quiet "$SETUP_SCRIPT" \
     --port="$PGPORT"
 
 quiet _psql -f ../setup.sql
-quiet _psql -f ../../db/schema.sql -f ../../db/nft_actions.sql -f ../../db/main_loop.sql
+quiet _psql -f ../../db/schema.sql -f ../../db/operation_types.sql -f ../../db/nft_actions.sql -f ../../db/main_loop.sql
 quiet _psql -f ../prelude.sql
 
 if [ "$VERBOSE" = "1" ]; then
