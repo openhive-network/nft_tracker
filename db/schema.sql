@@ -85,6 +85,52 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Damm checksum algorithm (base-10, single-digit result)
+-- Used to generate valid NAI check digits for NFT asset symbols.
+CREATE OR REPLACE FUNCTION nfttracker_app.damm_checksum(_input TEXT)
+RETURNS INT
+LANGUAGE plpgsql IMMUTABLE STRICT
+AS $$
+DECLARE
+  _table INT[][] := ARRAY[
+    ARRAY[0,3,1,7,5,9,8,6,4,2],
+    ARRAY[7,0,9,2,1,5,4,8,6,3],
+    ARRAY[4,2,0,6,8,7,1,3,5,9],
+    ARRAY[1,7,5,0,9,8,3,4,2,6],
+    ARRAY[6,1,2,3,0,4,5,9,7,8],
+    ARRAY[3,6,7,4,2,0,9,5,8,1],
+    ARRAY[5,8,6,9,7,2,0,1,3,4],
+    ARRAY[8,9,4,5,3,6,2,0,1,7],
+    ARRAY[9,4,3,8,6,1,7,2,0,5],
+    ARRAY[2,5,8,1,4,3,6,7,9,0]
+  ];
+  _interim INT := 0;
+  _ch CHAR;
+BEGIN
+  FOR i IN 1..length(_input) LOOP
+    _ch := substr(_input, i, 1);
+    _interim := _table[_interim + 1][(ascii(_ch) - ascii('0')) + 1];
+  END LOOP;
+  RETURN _interim;
+END;
+$$;
+
+-- Convert a type_id to a HAF asset_symbol.
+-- Offsets by 10,000,000 to avoid reserved NAI range, appends Damm checksum.
+CREATE OR REPLACE FUNCTION nfttracker_app.type_id_to_asset_symbol(_type_id BIGINT)
+RETURNS hafd.asset_symbol
+LANGUAGE plpgsql IMMUTABLE STRICT
+AS $$
+DECLARE
+  _nai_num BIGINT := _type_id + 10000000;
+  _nai_str TEXT := _nai_num::TEXT;
+  _checksum INT;
+BEGIN
+  _checksum := nfttracker_app.damm_checksum(_nai_str);
+  RETURN hive.asset_symbol_from_nai_string('@@' || _nai_str || _checksum::TEXT, 0::SMALLINT);
+END;
+$$;
+
 -- Create tables idempotently (preserves existing data)
 CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     id BIGSERIAL PRIMARY KEY,
@@ -93,6 +139,7 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     symbol nfttracker_app.symbol_name NOT NULL,
     name nfttracker_app.typename NOT NULL,
     max_count nfttracker_app.positive_integer,  -- NULL means unlimited,
+    asset_symbol hafd.asset_symbol,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
     UNIQUE (creator, symbol)
@@ -160,7 +207,7 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.authorized_issuers (
 );
 
 CREATE TABLE IF NOT EXISTS nfttracker_app.instances (
-    id BIGSERIAL PRIMARY KEY,
+    id NUMERIC PRIMARY KEY,
     type_id BIGINT NOT NULL REFERENCES nfttracker_app.types(id),
     holder INTEGER NOT NULL,
     data JSONB NOT NULL,

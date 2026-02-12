@@ -93,7 +93,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_soulbind_op(symbol TEXT, ids INT[], soulbound bool)
+CREATE OR REPLACE FUNCTION nft_soulbind_op(symbol TEXT, ids NUMERIC[], soulbound bool)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -106,7 +106,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids INT[], soulbound bool, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_soulbind_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids NUMERIC[], soulbound bool, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -114,7 +114,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_set_data_op(symbol TEXT, ids INT[], data jsonb)
+CREATE OR REPLACE FUNCTION nft_set_data_op(symbol TEXT, ids NUMERIC[], data jsonb)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -127,7 +127,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids INT[], data jsonb, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_set_data_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids NUMERIC[], data jsonb, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -135,7 +135,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION nft_transfer_op(symbol TEXT, ids INT[], to_account hafd.account_name_type)
+CREATE OR REPLACE FUNCTION nft_transfer_op(symbol TEXT, ids NUMERIC[], to_account hafd.account_name_type)
 RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
@@ -148,7 +148,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids INT[], to_account hafd.account_name_type, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_transfer_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids NUMERIC[], to_account hafd.account_name_type, pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -164,6 +164,25 @@ DECLARE
 BEGIN
     data := '[' || array_to_string(ops, ',') || ']';
     CALL insert_nft_operation(block_num, pos, auth, data);
+END;
+$$;
+
+-- Compute the expected deterministic instance ID for test assertions.
+-- _type_id: the BIGSERIAL id of the NFT type (1-based)
+-- _block_num, _pos: identify the operation that issued the instance
+-- _subsequent_no: 0-based index within a multi-action array (0 for single actions)
+CREATE OR REPLACE FUNCTION expected_instance_id(
+    _block_num INT, _pos INT, _type_id BIGINT, _subsequent_no BIGINT DEFAULT 0
+)
+RETURNS NUMERIC
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN hafd.generate_asset_unique_id(
+        nfttracker_app.type_id_to_asset_symbol(_type_id),
+        hafd.operation_id(_block_num, 18, _pos),
+        _subsequent_no
+    );
 END;
 $$;
 

@@ -36,7 +36,9 @@ $$;
 CREATE OR REPLACE FUNCTION nfttracker_app.process_action(
     IN _block_num INT,
     IN _active_auth hafd.account_name_type,
-    IN _json JSONB
+    IN _json JSONB,
+    IN _operation_id BIGINT,
+    IN _subsequent_no BIGINT
 )
 RETURNS SETOF VOID
 LANGUAGE 'plpgsql' VOLATILE
@@ -57,7 +59,7 @@ BEGIN
         CASE _json->>'action'
           WHEN 'register' THEN nfttracker_app.register(_block_num, _active_auth, _json)
           WHEN 'modify' THEN nfttracker_app.modify(_block_num, _active_auth, _json)
-          WHEN 'issue' THEN nfttracker_app.issue(_block_num, _active_auth, _json)
+          WHEN 'issue' THEN nfttracker_app.issue(_block_num, _active_auth, _json, _operation_id, _subsequent_no)
           WHEN 'soulbind' THEN nfttracker_app.soulbind(_block_num, _active_auth, _json)
           WHEN 'set_data' THEN nfttracker_app.set_data(_block_num, _active_auth, _json)
           WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _active_auth, _json)
@@ -76,7 +78,8 @@ $$;
 CREATE OR REPLACE FUNCTION nfttracker_app.process_actions(
     IN _block_num INT,
     IN _active_auth hafd.account_name_type,
-    IN _json JSONB
+    IN _json JSONB,
+    IN _operation_id BIGINT
 )
 RETURNS SETOF VOID
 LANGUAGE 'plpgsql' VOLATILE
@@ -84,10 +87,10 @@ AS
 $$
 BEGIN
   IF jsonb_typeof(_json) = 'object' THEN
-    RETURN QUERY SELECT nfttracker_app.process_action(_block_num, _active_auth, _json);
+    RETURN QUERY SELECT nfttracker_app.process_action(_block_num, _active_auth, _json, _operation_id, 0::BIGINT);
   ELSIF jsonb_typeof(_json) = 'array' THEN
     RETURN QUERY
-      SELECT nfttracker_app.process_action(_block_num, _active_auth, j.v)
+      SELECT nfttracker_app.process_action(_block_num, _active_auth, j.v, _operation_id, (j.idx - 1)::BIGINT)
       FROM jsonb_array_elements(_json) WITH ORDINALITY AS j(v, idx)
       ORDER BY idx ASC;
   END IF;
@@ -107,10 +110,11 @@ DECLARE
 BEGIN
   WITH select_ops AS
   (
-    SELECT x.block_num, (x.op).required_auths, (x.op).json::JSONB FROM
+    SELECT x.block_num, x.operation_id, (x.op).required_auths, (x.op).json::JSONB FROM
     (
       SELECT
         o.block_num,
+        o.id AS operation_id,
         o.body_binary::hive.custom_json_operation as op
       FROM hive.operations_view AS o
       WHERE o.op_type_id = nfttracker_backend.op_custom_json()
@@ -122,13 +126,14 @@ BEGIN
   (
     SELECT
       o.block_num,
+      o.operation_id,
       COALESCE(o.required_auths[1], NULL)::hafd.account_name_type AS active_auth,
       o.json
     FROM select_ops AS o
   ),
   process AS
   (
-    SELECT nfttracker_app.process_actions(o.block_num, o.active_auth, o.json)
+    SELECT nfttracker_app.process_actions(o.block_num, o.active_auth, o.json, o.operation_id)
     FROM selected_range AS o
   )
   SELECT COUNT(*) FROM process INTO _result;

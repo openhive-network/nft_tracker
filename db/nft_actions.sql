@@ -54,7 +54,7 @@ $$;
 -- Returns true if given account is holder for all given instances.
 CREATE OR REPLACE FUNCTION nfttracker_app.is_holder(
   IN _symbol nfttracker_app.symbol,
-  IN _ids INT[],
+  IN _ids NUMERIC[],
   IN _account hafd.account_name_type
 )
 RETURNS bool
@@ -81,7 +81,7 @@ $$;
 -- Returns true if all given instances exist.
 CREATE OR REPLACE FUNCTION nfttracker_app.instances_exist(
   IN _symbol nfttracker_app.symbol,
-  IN _ids INT[]
+  IN _ids NUMERIC[]
 )
 RETURNS bool
 LANGUAGE plpgsql
@@ -239,6 +239,12 @@ BEGIN
       JOIN hafd.accounts AS o ON o.name = j.owner
       JOIN hafd.accounts AS a ON a.name = _account
       RETURNING id, (SELECT issuers FROM json_fields LIMIT 1) AS issuers
+    ),
+    set_asset_symbol AS (
+      UPDATE nfttracker_app.types AS t
+      SET asset_symbol = nfttracker_app.type_id_to_asset_symbol(nt.id)
+      FROM new_type AS nt
+      WHERE t.id = nt.id
     )
     INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)
     SELECT t.id, a.id
@@ -355,7 +361,9 @@ $$;
 CREATE OR REPLACE FUNCTION nfttracker_app.issue(
   IN _block_num INT,
   IN _account hafd.account_name_type,
-  IN _json JSONB
+  IN _json JSONB,
+  IN _operation_id BIGINT,
+  IN _subsequent_no BIGINT
 )
 RETURNS VOID
 LANGUAGE 'plpgsql'
@@ -379,6 +387,7 @@ BEGIN
     FROM jsonb_to_record(_json) AS j(symbol text, data jsonb, tags nfttracker_app.tags, soulbound boolean, holder hafd.account_name_type)
   )
   INSERT INTO nfttracker_app.instances (
+    id,
     type_id,
     holder,
     data,
@@ -388,6 +397,7 @@ BEGIN
     updated_at
   )
   SELECT
+    hafd.generate_asset_unique_id(t.asset_symbol, _operation_id, _subsequent_no),
     t.id,
     h.id,
     j.data,
@@ -415,9 +425,9 @@ VOLATILE
 AS $$
 DECLARE
   _symbol nfttracker_app.symbol := (_json->>'symbol')::nfttracker_app.symbol;
-  _ids INT[];
+  _ids NUMERIC[];
 BEGIN
-  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::INT) INTO _ids;
+  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
   IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
     RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
   END IF;
@@ -428,7 +438,7 @@ BEGIN
   SET
     soulbound = j.soulbound,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], soulbound boolean)
+  FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], soulbound boolean)
   JOIN hafd.accounts AS ns ON ns.name = (j.symbol::nfttracker_app.symbol).namespace
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name AND t.creator = ns.id
   JOIN hafd.blocks AS b ON b.num = _block_num
@@ -447,9 +457,9 @@ VOLATILE
 AS $$
 DECLARE
   _symbol nfttracker_app.symbol := (_json->>'symbol')::nfttracker_app.symbol;
-  _ids INT[];
+  _ids NUMERIC[];
 BEGIN
-  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::INT) INTO _ids;
+  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
   IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
     RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
   END IF;
@@ -460,7 +470,7 @@ BEGIN
   SET
     data = j.data,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], data jsonb)
+  FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], data jsonb)
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   WHERE i.id = ANY(j.ids) AND i.type_id = t.id;
@@ -478,10 +488,10 @@ VOLATILE
 AS $$
 DECLARE
   _symbol nfttracker_app.symbol;
-  _ids INT[];
+  _ids NUMERIC[];
 BEGIN
   _symbol := (_json->>'symbol')::nfttracker_app.symbol;
-  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::INT) INTO _ids;
+  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
   IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
     RAISE EXCEPTION 'NFTs %:% do not exist', _json->>'symbol', _ids;
   END IF;
@@ -492,7 +502,7 @@ BEGIN
   SET
     holder = a.id,
     updated_at = b.created_at
-  FROM jsonb_to_record(_json) AS j(symbol text, ids INT[], "to" hafd.account_name_type)
+  FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], "to" hafd.account_name_type)
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j."to"

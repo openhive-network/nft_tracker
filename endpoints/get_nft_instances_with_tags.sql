@@ -49,7 +49,7 @@ SET ROLE nfttracker_owner;
         name: last_id
         required: false
         schema:
-          type: integer
+          type: string
           default: NULL
         description: |
           Return instances with IDs greater than this value.
@@ -66,7 +66,7 @@ SET ROLE nfttracker_owner;
               items:
                 $ref: '#/components/schemas/nfttracker_endpoints.nft_instance'
             example: [{
-              "id": 1,
+              "id": "123456789012345678",
               "holder": "alice",
               "data": "{\"key\": \"value\"}",
               "tags": ["item", "collectible"],
@@ -85,7 +85,7 @@ CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances_with_tags(
     "symbol" TEXT,
     "tags" TEXT,
     "count" INT = NULL,
-    "last_id" INT = NULL
+    "last_id" NUMERIC = NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end

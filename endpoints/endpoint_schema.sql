@@ -95,7 +95,7 @@ DO $__$
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
+            "type": "string",
             "description": "id of NFT instance"
           },
           "holder": {
@@ -292,7 +292,7 @@ DO $__$
             "name": "last_id",
             "required": false,
             "schema": {
-              "type": "integer",
+              "type": "string",
               "default": null
             },
             "description": "Return instances with IDs greater than this value\n"
@@ -311,7 +311,7 @@ DO $__$
                 },
                 "example": [
                   {
-                    "id": 1,
+                    "id": "123456789012345678",
                     "holder": "alice",
                     "data": "{\"key\": \"value\"}",
                     "tags": [
@@ -383,7 +383,7 @@ DO $__$
             "name": "last_id",
             "required": false,
             "schema": {
-              "type": "integer",
+              "type": "string",
               "default": null
             },
             "description": "Return instances with IDs greater than this value.\n"
@@ -402,7 +402,7 @@ DO $__$
                 },
                 "example": [
                   {
-                    "id": 1,
+                    "id": "123456789012345678",
                     "holder": "alice",
                     "data": "{\"key\": \"value\"}",
                     "tags": [

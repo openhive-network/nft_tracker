@@ -4,11 +4,11 @@
 CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/XYZ', name=>'test', owner=>'alice', issuers=>ARRAY['alice'], max_count=>12);
 CALL insert_nft_issue_op(block_num=>2, pos=>1, auth=>'alice', symbol=>'alice/XYZ', holder=>'alice', data=>'{"bound": false}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 CALL insert_nft_issue_op(block_num=>2, pos=>2, auth=>'alice', symbol=>'alice/XYZ', holder=>'alice', data=>'{"bound": true}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>TRUE);
-CALL insert_nft_soulbind_op(block_num=>3, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[1], soulbound=>TRUE);
-CALL insert_nft_transfer_op(block_num=>4, pos=>1, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[1], to_account=>'null');
-CALL insert_nft_transfer_op(block_num=>4, pos=>2, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[2], to_account=>'null');
-CALL insert_nft_transfer_op(block_num=>4, pos=>3, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[1], to_account=>'alice');
-CALL insert_nft_transfer_op(block_num=>4, pos=>4, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[2], to_account=>'alice');
+CALL insert_nft_soulbind_op(block_num=>3, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[expected_instance_id(2,1,1)], soulbound=>TRUE);
+CALL insert_nft_transfer_op(block_num=>4, pos=>1, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[expected_instance_id(2,1,1)], to_account=>'null');
+CALL insert_nft_transfer_op(block_num=>4, pos=>2, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[expected_instance_id(2,2,1)], to_account=>'null');
+CALL insert_nft_transfer_op(block_num=>4, pos=>3, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[expected_instance_id(2,1,1)], to_account=>'alice');
+CALL insert_nft_transfer_op(block_num=>4, pos=>4, auth=>'alice', symbol=>'alice/XYZ', ids=>ARRAY[expected_instance_id(2,2,1)], to_account=>'alice');
 
 -- When
 CALL nfttracker_sync_blocks();

@@ -3,7 +3,7 @@ nfttracker_endpoints.nft_instance:
   type: object
   properties:
     id:
-      type: integer
+      type: string
       description: id of NFT instance
     holder:
       type: string
@@ -32,7 +32,7 @@ nfttracker_endpoints.nft_instance:
 -- openapi-generated-code-begin
 DROP TYPE IF EXISTS nfttracker_endpoints.nft_instance CASCADE;
 CREATE TYPE nfttracker_endpoints.nft_instance AS (
-    "id" INT,
+    "id" TEXT,
     "holder" TEXT,
     "data" TEXT,
     "tags" TEXT[],
