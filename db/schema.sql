@@ -145,6 +145,19 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.types (
     UNIQUE (creator, symbol)
 );
 
+CREATE OR REPLACE FUNCTION nfttracker_app.set_asset_symbol_on_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.asset_symbol := nfttracker_app.type_id_to_asset_symbol(NEW.id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_set_asset_symbol
+BEFORE INSERT ON nfttracker_app.types
+FOR EACH ROW
+EXECUTE FUNCTION nfttracker_app.set_asset_symbol_on_insert();
+
 CREATE OR REPLACE FUNCTION nfttracker_app.namespace_by_id(_id BIGINT)
 RETURNS nfttracker_app.symbol_namespace
 AS $$

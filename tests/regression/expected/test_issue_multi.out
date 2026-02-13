@@ -26,8 +26,8 @@ NOTICE:  Blocks limit reached. Exiting application main loop at processed block:
 SELECT creator, owner, symbol, holder, data, tags, soulbound FROM instances_view;
  creator | owner | symbol | holder |       data       | tags | soulbound 
 ---------+-------+--------+--------+------------------+------+-----------
- alice   | alice | B      | alice  | {"for": "alice"} | {}   | f
  alice   | alice | A      | bob    | {"for": "bob"}   | {}   | f
+ alice   | alice | B      | alice  | {"for": "alice"} | {}   | f
  alice   | alice | B      | bob    | {"for": "bob"}   | {}   | f
 (3 rows)
 

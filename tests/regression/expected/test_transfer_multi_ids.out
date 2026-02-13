@@ -8,9 +8,9 @@ CALL insert_nft_issue_op(block_num=>2, pos=>2, auth=>'alice', symbol=>'alice/X',
 CALL insert_nft_issue_op(block_num=>2, pos=>3, auth=>'alice', symbol=>'alice/Z', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 CALL insert_nft_issue_op(block_num=>2, pos=>4, auth=>'alice', symbol=>'alice/Y', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
 CALL insert_nft_issue_op(block_num=>2, pos=>5, auth=>'alice', symbol=>'alice/Y', holder=>'alice', data=>'{}', tags=>ARRAY[]::nfttracker_app.tags, soulbound=>FALSE);
-CALL insert_nft_transfer_op(block_num=>3, pos=>1, auth=>'alice', symbol=>'alice/X', ids=>ARRAY[1, 2], to_account=>'bob');
-CALL insert_nft_transfer_op(block_num=>3, pos=>2, auth=>'alice', symbol=>'alice/Z', ids=>ARRAY[3, 0], to_account=>'dan');
-CALL insert_nft_transfer_op(block_num=>3, pos=>3, auth=>'alice', symbol=>'alice/Y', ids=>ARRAY[4, 5], to_account=>'charlie');
+CALL insert_nft_transfer_op(block_num=>3, pos=>1, auth=>'alice', symbol=>'alice/X', ids=>ARRAY[expected_instance_id(2,1,1), expected_instance_id(2,2,1)], to_account=>'bob');
+CALL insert_nft_transfer_op(block_num=>3, pos=>2, auth=>'alice', symbol=>'alice/Z', ids=>ARRAY[expected_instance_id(2,3,3), 0::NUMERIC], to_account=>'dan');
+CALL insert_nft_transfer_op(block_num=>3, pos=>3, auth=>'alice', symbol=>'alice/Y', ids=>ARRAY[expected_instance_id(2,4,2), expected_instance_id(2,5,2)], to_account=>'charlie');
 -- When
 CALL nfttracker_sync_blocks();
 NOTICE:  Last block processed by application: 0
@@ -25,7 +25,7 @@ NOTICE:  nfttracker processing block: 2...
 NOTICE:  nfttracker processed block 2 successfully in _ s
     
 NOTICE:  nfttracker processing block: 3...
-WARNING:  Error processing action transfer in block 3: NFTs alice/Z:{3,0} do not exist
+WARNING:  Error processing action transfer in block 3: NFTs alice/Z:{158456325084298404279550476288,0} do not exist
 NOTICE:  nfttracker processed block 3 successfully in _ s
     
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 3.
@@ -40,7 +40,7 @@ SELECT creator, owner, symbol, holder, data, tags, soulbound FROM instances_view
  alice   | alice | Y      | charlie | {}   | {}   | f
 (5 rows)
 
-SELECT updated_at > created_at FROM instances_view WHERE id<>3;
+SELECT updated_at > created_at FROM instances_view WHERE id<>expected_instance_id(2,3,3);
  ?column? 
 ----------
  t
@@ -49,7 +49,7 @@ SELECT updated_at > created_at FROM instances_view WHERE id<>3;
  t
 (4 rows)
 
-SELECT updated_at = created_at FROM instances_view WHERE id=3;
+SELECT updated_at = created_at FROM instances_view WHERE id=expected_instance_id(2,3,3);
  ?column? 
 ----------
  t
