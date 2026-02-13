@@ -239,12 +239,6 @@ BEGIN
       JOIN hafd.accounts AS o ON o.name = j.owner
       JOIN hafd.accounts AS a ON a.name = _account
       RETURNING id, (SELECT issuers FROM json_fields LIMIT 1) AS issuers
-    ),
-    set_asset_symbol AS (
-      UPDATE nfttracker_app.types AS t
-      SET asset_symbol = nfttracker_app.type_id_to_asset_symbol(nt.id)
-      FROM new_type AS nt
-      WHERE t.id = nt.id
     )
     INSERT INTO nfttracker_app.authorized_issuers (type_id, account_id)
     SELECT t.id, a.id
