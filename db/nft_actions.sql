@@ -78,27 +78,29 @@ BEGIN
 END;
 $$;
 
--- Returns true if all given instances exist.
-CREATE OR REPLACE FUNCTION nfttracker_app.instances_exist(
+CREATE OR REPLACE PROCEDURE nfttracker_app.assert_instances_exist(
   IN _symbol nfttracker_app.symbol,
   IN _ids NUMERIC[]
 )
-RETURNS bool
 LANGUAGE plpgsql
-STABLE
 AS
 $$
 DECLARE
-  _count INT;
+  _missing NUMERIC[];
 BEGIN
-  SELECT COUNT(*) INTO _count
-    FROM nfttracker_app.instances AS i
+  SELECT ARRAY(
+    SELECT id FROM unnest(_ids) AS id
+    EXCEPT
+    SELECT i.id FROM nfttracker_app.instances AS i
     JOIN nfttracker_app.types AS t ON t.id = i.type_id
     JOIN hafd.accounts AS ns ON ns.name = _symbol.namespace
     WHERE t.symbol = _symbol.name
       AND t.creator = ns.id
-      AND i.id = ANY(_ids);
-  RETURN _count = ARRAY_LENGTH(_ids, 1);
+      AND i.id = ANY(_ids)
+  ) INTO _missing;
+  IF _missing <> '{}' THEN
+    RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _missing;
+  END IF;
 END;
 $$;
 
@@ -422,9 +424,7 @@ DECLARE
   _ids NUMERIC[];
 BEGIN
   SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
-  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
-    RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
-  END IF;
+  CALL nfttracker_app.assert_instances_exist(_symbol, _ids);
   IF NOT nfttracker_app.is_authorized(_symbol, _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to soulbind NFTs %', _account, _json->>'symbol';
   END IF;
@@ -454,9 +454,7 @@ DECLARE
   _ids NUMERIC[];
 BEGIN
   SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
-  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
-    RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
-  END IF;
+  CALL nfttracker_app.assert_instances_exist(_symbol, _ids);
   IF NOT nfttracker_app.is_authorized(_symbol, _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to set data on NFTs %', _account, _json->>'symbol';
   END IF;
@@ -485,9 +483,7 @@ DECLARE
   _ids NUMERIC[];
 BEGIN
   SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
-  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
-    RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
-  END IF;
+  CALL nfttracker_app.assert_instances_exist(_symbol, _ids);
   IF NOT nfttracker_app.is_authorized(_symbol, _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to update tags on NFTs %', _account, _json->>'symbol';
   END IF;
@@ -517,9 +513,7 @@ DECLARE
 BEGIN
   _symbol := (_json->>'symbol')::nfttracker_app.symbol;
   SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
-  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
-    RAISE EXCEPTION 'NFTs %:% do not exist', _json->>'symbol', _ids;
-  END IF;
+  CALL nfttracker_app.assert_instances_exist(_symbol, _ids);
   IF NOT nfttracker_app.is_holder(_symbol, _ids, _account) THEN
     RAISE EXCEPTION 'Account % is disallowed to transfer NFTs %:%', _account, _json->>'symbol', _ids;
   END IF;
