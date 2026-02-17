@@ -21,7 +21,10 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     INSERT INTO hafd.operations (id, trx_in_block, op_type_id, op_pos, body_binary, custom_json_type_id)
-    VALUES (hafd.operation_id(block_num, pos), 0, 18, pos, format_nft_operation(block_num, pos, auth, data)::jsonb::hafd.operation, NULL);
+    VALUES (hafd.operation_id(block_num, pos), 0,
+            nfttracker_backend.op_custom_json(), pos,
+            format_nft_operation(block_num, pos, auth, data)::jsonb::hafd.operation,
+            nfttracker_backend.custom_json_nft_type_id());
 END;
 $$;
 
@@ -237,3 +240,7 @@ LEFT JOIN hafd.accounts AS h ON i.holder = h.id
 LEFT JOIN hafd.accounts AS c ON t.creator = c.id
 LEFT JOIN hafd.accounts AS o ON t.owner = o.id
 ORDER BY id;
+
+-- Pre-create NFT indexes so they exist before block processing starts.
+-- This mirrors the pre-37324d92 behavior where indexes were created during install.
+SELECT nfttracker_app.create_nft_indexes();

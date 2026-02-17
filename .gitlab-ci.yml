@@ -1,5 +1,6 @@
 stages:
 - build
+- test
 - publish
 
 variables:
@@ -7,6 +8,9 @@ variables:
   DOCKER_BUILDER_TAG: "latest"
   DOCKER_DIND_TAG: "latest"
   IMAGE_REMOVER_TAG: "latest"
+  # HAF image version for regression tests (1.28.6-rc5 = d0d167d7)
+  HAF_REGISTRY: "registry.gitlab.syncad.com/hive/haf"
+  HAF_VERSION: "1.28.6-rc5"
   # common-ci-configuration reference for fetching scripts
   COMMON_CI_REF: "develop"
   # Git configuration
@@ -71,9 +75,48 @@ build_images:
   tags:
   - public-runner-docker
 
+regression_tests:
+  extends: .docker_image_builder_job_template
+  stage: test
+  needs: []
+  before_script:
+  - !reference [.docker_image_builder_job_template, before_script]
+  - |
+    echo -e "\e[0Ksection_start:$(date +%s):login[collapsed=true]\r\e[0KLogging to Docker registry..."
+    docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    echo -e "\e[0Ksection_end:$(date +%s):login\r\e[0K"
+  script:
+  - |
+    echo "Pulling HAF image..."
+    docker pull "${HAF_REGISTRY}:${HAF_VERSION}"
+
+    mkdir -p "${CI_PROJECT_DIR}/test-artifacts"
+    chmod 777 "${CI_PROJECT_DIR}/test-artifacts"
+
+    echo "Running regression tests inside HAF container..."
+    docker run --rm \
+      -e DATADIR=/home/hived/datadir \
+      -e SHM_DIR=/home/hived/datadir/blockchain \
+      -e PG_ACCESS="host    all    all    127.0.0.1/32    trust\nhost    all    all    ::1/128    trust\n" \
+      -v "${CI_PROJECT_DIR}:/home/haf_admin/workspace:ro" \
+      -v "${CI_PROJECT_DIR}/scripts/ci-helpers/run-ci-tests.sh:/home/haf_admin/run-ci-tests.sh:ro" \
+      -v "${CI_PROJECT_DIR}/test-artifacts:/tmp/test-artifacts" \
+      "${HAF_REGISTRY}:${HAF_VERSION}" \
+      --execute-maintenance-script=/home/haf_admin/run-ci-tests.sh
+  artifacts:
+    paths:
+    - test-artifacts/
+    when: on_failure
+    expire_in: 1 week
+  tags:
+  - public-runner-docker
+
 publish_release_images:
   extends: .docker_image_builder_job_template
   stage: publish
+  needs:
+  - regression_tests
+  - build_images
   before_script:
   - !reference [.docker_image_builder_job_template, before_script]
   - |
