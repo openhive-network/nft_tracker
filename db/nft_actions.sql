@@ -463,7 +463,8 @@ BEGIN
     data = j.data,
     updated_at = b.created_at
   FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], data jsonb)
-  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
+  JOIN hafd.accounts AS ns ON ns.name = (j.symbol::nfttracker_app.symbol).namespace
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name AND t.creator = ns.id
   JOIN hafd.blocks AS b ON b.num = _block_num
   WHERE i.id = ANY(j.ids) AND i.type_id = t.id;
 END
@@ -492,7 +493,8 @@ BEGIN
     tags = j.tags,
     updated_at = b.created_at
   FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], tags nfttracker_app.tags)
-  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
+  JOIN hafd.accounts AS ns ON ns.name = (j.symbol::nfttracker_app.symbol).namespace
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name AND t.creator = ns.id
   JOIN hafd.blocks AS b ON b.num = _block_num
   WHERE i.id = ANY(j.ids) AND i.type_id = t.id;
 END
@@ -522,7 +524,8 @@ BEGIN
     holder = a.id,
     updated_at = b.created_at
   FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], "to" hafd.account_name_type)
-  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
+  JOIN hafd.accounts AS ns ON ns.name = (j.symbol::nfttracker_app.symbol).namespace
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name AND t.creator = ns.id
   JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS a ON a.name = j."to"
   WHERE i.id = ANY(j.ids) AND i.type_id = t.id AND (NOT i.soulbound OR j."to" = 'null');
