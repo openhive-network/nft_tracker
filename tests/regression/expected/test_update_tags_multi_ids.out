@@ -25,7 +25,7 @@ NOTICE:  nfttracker processing block: 2...
 NOTICE:  nfttracker processed block 2 successfully in _ s
     
 NOTICE:  nfttracker processing block: 3...
-WARNING:  Error processing action update_tags in block 3: NFTs (alice,Z):{158456325084298404279550476288,0} do not exist
+WARNING:  Error processing action update_tags in block 3: NFTs (alice,Z):{0} do not exist
 NOTICE:  nfttracker processed block 3 successfully in _ s
     
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 3.
