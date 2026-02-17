@@ -9,7 +9,7 @@ NFT Tracker is a blockchain-based NFT (Non-Fungible Token) management and tracki
 - **REST API**: OpenAPI-documented endpoints via PostgREST
 - **Block Processing**: Sync NFT operations from Hive blockchain custom_json operations
 
-**Supported Operations:** `register`, `modify`, `issue`, `soulbind`, `set_data`, `transfer`
+**Supported Operations:** `register`, `modify`, `issue`, `soulbind`, `set_data`, `update_tags`, `transfer`
 
 ## Tech Stack
 

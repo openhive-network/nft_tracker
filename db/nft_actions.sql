@@ -471,6 +471,37 @@ BEGIN
 END
 $$;
 
+CREATE OR REPLACE FUNCTION nfttracker_app.update_tags(
+  IN _block_num INT,
+  IN _account hafd.account_name_type,
+  IN _json JSONB
+)
+RETURNS VOID
+LANGUAGE 'plpgsql'
+VOLATILE
+AS $$
+DECLARE
+  _symbol nfttracker_app.symbol := (_json->>'symbol')::nfttracker_app.symbol;
+  _ids NUMERIC[];
+BEGIN
+  SELECT ARRAY(SELECT jsonb_array_elements_text(_json->'ids')::NUMERIC) INTO _ids;
+  IF NOT nfttracker_app.instances_exist(_symbol, _ids) THEN
+    RAISE EXCEPTION 'NFTs %:% do not exist', _symbol, _ids;
+  END IF;
+  IF NOT nfttracker_app.is_authorized(_symbol, _account) THEN
+    RAISE EXCEPTION 'Account % is disallowed to update tags on NFTs %', _account, _json->>'symbol';
+  END IF;
+  UPDATE nfttracker_app.instances AS i
+  SET
+    tags = j.tags,
+    updated_at = b.created_at
+  FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], tags nfttracker_app.tags)
+  JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name
+  JOIN hafd.blocks AS b ON b.num = _block_num
+  WHERE i.id = ANY(j.ids) AND i.type_id = t.id;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.transfer(
   IN _block_num INT,
   IN _account hafd.account_name_type,

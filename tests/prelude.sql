@@ -139,6 +139,27 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION nft_update_tags_op(symbol TEXT, ids NUMERIC[], tags nfttracker_app.tags)
+RETURNS TEXT
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN format('{"action": "update_tags", "symbol": %s, "ids": %s, "tags": %s}',
+        to_jsonb(symbol)::text,
+        to_jsonb(ids)::text,
+        to_jsonb(tags)::text
+    );
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE insert_nft_update_tags_op(block_num INT, auth hafd.account_name_type, symbol TEXT, ids NUMERIC[], tags nfttracker_app.tags, pos INT DEFAULT 0)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    CALL insert_nft_operation(block_num, pos, auth, nft_update_tags_op(symbol, ids, tags)::jsonb);
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION nft_transfer_op(symbol TEXT, ids NUMERIC[], to_account hafd.account_name_type)
 RETURNS TEXT
 LANGUAGE plpgsql
