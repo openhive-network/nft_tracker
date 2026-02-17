@@ -62,6 +62,7 @@ BEGIN
           WHEN 'issue' THEN nfttracker_app.issue(_block_num, _active_auth, _json, _operation_id, _subsequent_no)
           WHEN 'soulbind' THEN nfttracker_app.soulbind(_block_num, _active_auth, _json)
           WHEN 'set_data' THEN nfttracker_app.set_data(_block_num, _active_auth, _json)
+          WHEN 'update_tags' THEN nfttracker_app.update_tags(_block_num, _active_auth, _json)
           WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _active_auth, _json)
         END;
   EXCEPTION
