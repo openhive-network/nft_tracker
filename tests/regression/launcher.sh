@@ -1,14 +1,17 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SETUP_SCRIPT="$PROJECT_ROOT/scripts/setup_db.sh"
 
 : "${PGPORT:?Error: PGPORT is not defined}"
 : "${PGHOST:?Error: PGHOST is not defined}"
 : "${DB_NAME:?Error: DB_NAME is not defined}"
 : "${DB_ADMIN:?Error: DB_ADMIN is not defined}"
+
+VERBOSE="${VERBOSE:-}"
+KEEP_DB="${KEEP_DB:-}"
 
 _psql() {
     psql -w -v ON_ERROR_STOP=1 -h localhost -U haf_admin -d "$DB_NAME" "$@"

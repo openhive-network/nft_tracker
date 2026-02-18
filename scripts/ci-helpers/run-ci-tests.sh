@@ -1,13 +1,15 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 PG_MAJOR=$(pg_config --version | sed 's/PostgreSQL \([0-9]*\).*/\1/')
 echo "=== Installing test dependencies (PostgreSQL ${PG_MAJOR}) ==="
 sudo apt-get update -qq
-sudo apt-get install -y -qq "postgresql-server-dev-${PG_MAJOR}" make git >/dev/null 2>&1
+# pg_regress requires postgresql-server-dev (PGXS) and make
+sudo apt-get install -y -qq "postgresql-server-dev-${PG_MAJOR}" make >/dev/null 2>&1
 
 echo "=== Copying workspace to writable location ==="
-cp -a /home/haf_admin/workspace /tmp/nft_tracker
+mkdir -p /tmp/nft_tracker
+tar -cf - -C /home/haf_admin/workspace --exclude=.git . | tar -xf - -C /tmp/nft_tracker
 cd /tmp/nft_tracker
 
 echo "=== Running regression tests ==="

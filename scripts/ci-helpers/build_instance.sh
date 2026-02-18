@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 print_help () {
 cat <<-EOF
@@ -14,6 +14,9 @@ EOF
 }
 
 PROGRESS_DISPLAY=${PROGRESS_DISPLAY:-"auto"}
+BUILD_IMAGE_TAG=""
+SRCROOTDIR=""
+REGISTRY=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
