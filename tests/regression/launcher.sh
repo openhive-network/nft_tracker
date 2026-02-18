@@ -14,7 +14,7 @@ VERBOSE="${VERBOSE:-}"
 KEEP_DB="${KEEP_DB:-}"
 
 _psql() {
-    psql -w -v ON_ERROR_STOP=1 -h localhost -U haf_admin -d "$DB_NAME" "$@"
+    psql -w -v ON_ERROR_STOP=1 -h "$PGHOST" -U "$DB_ADMIN" -d "$DB_NAME" "$@"
 }
 
 quiet() {

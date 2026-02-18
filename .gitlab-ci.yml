@@ -80,24 +80,14 @@ build_images:
       ${CI_COMMIT_TAG:+--build-arg GIT_COMMIT_TAG="$CI_COMMIT_TAG"} \
       .
     docker push "${REWRITER_IMAGE}:${CI_COMMIT_SHORT_SHA}"
-
-    # Tag with 'latest' on develop branch
-    if [[ "${CI_COMMIT_BRANCH:-}" == "develop" ]]; then
-      docker tag "${REWRITER_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${REWRITER_IMAGE}:latest"
-      docker push "${REWRITER_IMAGE}:latest"
-    fi
-
-    # Tag with version on protected tags
-    if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
-      docker tag "${REWRITER_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${REWRITER_IMAGE}:${CI_COMMIT_TAG}"
-      docker push "${REWRITER_IMAGE}:${CI_COMMIT_TAG}"
-    fi
+    # publish_images job handles latest/version tagging via the publish template
   tags:
   - public-runner-docker
 
 regression_tests:
   extends: .docker_image_builder_job_template
   stage: test
+  timeout: 15 minutes
   needs:
   - build_images
   before_script:
@@ -108,6 +98,10 @@ regression_tests:
     echo -e "\e[0Ksection_end:$(date +%s):login\r\e[0K"
   script:
   - |
+    # Clean up stale resources from previous runs (runner reuse)
+    docker rm -f haf 2>/dev/null || true
+    docker network rm nft-test-net 2>/dev/null || true
+
     echo -e "\e[0Ksection_start:$(date +%s):pull[collapsed=true]\r\e[0KPulling images..."
     docker pull "${HAF_REGISTRY}:${HAF_VERSION}"
     docker pull "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
@@ -131,9 +125,14 @@ regression_tests:
     # pg_isready is insufficient - it returns success before HAF init scripts complete
     echo "Waiting for HAF initialization..."
     for i in $(seq 1 120); do
-      if docker exec haf psql -U haf_admin -d haf_block_log -c "SELECT 1" 2>/dev/null; then
+      if docker exec haf psql -qt -U haf_admin -d haf_block_log -c "SELECT 1" >/dev/null 2>&1; then
         echo "HAF is ready after ${i}s"
         break
+      fi
+      if ! docker inspect --format='{{.State.Running}}' haf 2>/dev/null | grep -q true; then
+        echo "ERROR: HAF container exited unexpectedly"
+        docker logs haf
+        exit 1
       fi
       if [ "$i" -eq 120 ]; then
         echo "ERROR: HAF did not become ready within 120s"
@@ -177,6 +176,9 @@ regression_tests:
   tags:
   - public-runner-docker
 
+# Uses .docker_publish_job_template from common-ci-configuration.
+# The template re-tags images built with $CI_COMMIT_SHORT_SHA and pushes them
+# to both the GitLab registry and registry-upload.hive.blog on protected tags.
 publish_images:
   extends: .docker_publish_job_template
   needs:
