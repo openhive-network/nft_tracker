@@ -102,8 +102,19 @@ regression_tests:
     docker rm -f haf 2>/dev/null || true
     docker network rm nft-test-net 2>/dev/null || true
 
-    echo -e "\e[0Ksection_start:$(date +%s):pull[collapsed=true]\r\e[0KPulling images..."
-    docker pull "${HAF_REGISTRY}:${HAF_VERSION}"
+    echo -e "\e[0Ksection_start:$(date +%s):pull[collapsed=true]\r\e[0KPulling test image..."
+    # Test image = HAF + postgresql-server-dev + make (for pg_regress).
+    # Built once per HAF_VERSION and cached in the registry.
+    HAF_TEST_IMAGE="${CI_REGISTRY_IMAGE}/haf-test:${HAF_VERSION}"
+    if ! docker pull "${HAF_TEST_IMAGE}" 2>/dev/null; then
+      echo "Test image not found, building..."
+      docker build \
+        -t "${HAF_TEST_IMAGE}" \
+        --build-arg "HAF_IMAGE=${HAF_REGISTRY}:${HAF_VERSION}" \
+        -f docker/Dockerfile.test .
+      docker push "${HAF_TEST_IMAGE}"
+    fi
+
     docker pull "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
     echo -e "\e[0Ksection_end:$(date +%s):pull\r\e[0K"
 
@@ -118,7 +129,7 @@ regression_tests:
       -e DATADIR=/home/hived/datadir \
       -e SHM_DIR=/home/hived/datadir/blockchain \
       -e PG_ACCESS="host    all    all    0.0.0.0/0    trust\nhost    all    all    ::0/0    trust" \
-      "${HAF_REGISTRY}:${HAF_VERSION}" \
+      "${HAF_TEST_IMAGE}" \
       --skip-hived
 
     # Wait for HAF to be fully initialized (roles + database created)
