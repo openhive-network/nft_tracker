@@ -121,19 +121,20 @@ regression_tests:
       --network nft-test-net \
       -e DATADIR=/home/hived/datadir \
       -e SHM_DIR=/home/hived/datadir/blockchain \
-      -e PG_ACCESS="host    all    all    0.0.0.0/0    trust" \
+      -e PG_ACCESS="host    all    all    0.0.0.0/0    trust\nhost    all    all    ::0/0    trust" \
       "${HAF_REGISTRY}:${HAF_VERSION}" \
       --skip-hived
 
-    # Wait for PostgreSQL to be ready
-    echo "Waiting for PostgreSQL..."
+    # Wait for HAF to be fully initialized (roles + database created)
+    # pg_isready is insufficient - it returns success before HAF init scripts complete
+    echo "Waiting for HAF initialization..."
     for i in $(seq 1 120); do
-      if docker exec haf pg_isready -h localhost -U haf_admin 2>/dev/null; then
-        echo "PostgreSQL is ready after ${i}s"
+      if docker exec haf psql -U haf_admin -d haf_block_log -c "SELECT 1" 2>/dev/null; then
+        echo "HAF is ready after ${i}s"
         break
       fi
       if [ "$i" -eq 120 ]; then
-        echo "ERROR: PostgreSQL did not become ready within 120s"
+        echo "ERROR: HAF did not become ready within 120s"
         docker logs haf
         exit 1
       fi
@@ -150,8 +151,8 @@ regression_tests:
     echo -e "\e[0Ksection_end:$(date +%s):install\r\e[0K"
 
     echo -e "\e[0Ksection_start:$(date +%s):regress\r\e[0KRunning regression tests..."
-    docker cp "${CI_PROJECT_DIR}/." "haf:/home/haf_admin/workspace"
-    docker exec haf chown -R haf_admin:haf_admin /home/haf_admin/workspace
+    docker exec -u haf_admin haf mkdir -p /home/haf_admin/workspace
+    tar -cf - -C "${CI_PROJECT_DIR}" . | docker exec -i -u haf_admin haf tar -xf - -C /home/haf_admin/workspace
     docker exec \
       -u haf_admin \
       -w /home/haf_admin \
