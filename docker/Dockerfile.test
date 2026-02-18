@@ -1,0 +1,11 @@
+ARG HAF_IMAGE
+FROM ${HAF_IMAGE}
+
+USER root
+RUN PG_MAJOR=$(pg_config --version | sed 's/PostgreSQL \([0-9]*\).*/\1/') \
+    && apt-get update -qq \
+    && apt-get install -y --no-install-recommends \
+       "postgresql-server-dev-${PG_MAJOR}" \
+       make \
+    && rm -rf /var/lib/apt/lists/*
+USER haf_admin
