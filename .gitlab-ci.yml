@@ -8,7 +8,9 @@ variables:
   DOCKER_BUILDER_TAG: "latest"
   DOCKER_DIND_TAG: "latest"
   IMAGE_REMOVER_TAG: "latest"
-  # HAF image version for regression tests (1.28.6-rc5 = d0d167d7)
+  # HAF image for regression tests.
+  # Pin to a specific version for reproducible CI. Update when HAF
+  # releases schema changes that affect nfttracker (check HAF changelog).
   HAF_REGISTRY: "registry.gitlab.syncad.com/hive/haf"
   HAF_VERSION: "1.28.6-rc5"
   # common-ci-configuration reference for fetching scripts
@@ -152,7 +154,7 @@ regression_tests:
 
     echo -e "\e[0Ksection_start:$(date +%s):regress\r\e[0KRunning regression tests..."
     docker exec -u haf_admin haf mkdir -p /home/haf_admin/workspace
-    tar -cf - -C "${CI_PROJECT_DIR}" . | docker exec -i -u haf_admin haf tar -xf - -C /home/haf_admin/workspace
+    tar -cf - -C "${CI_PROJECT_DIR}" --exclude=.git . | docker exec -i -u haf_admin haf tar -xf - -C /home/haf_admin/workspace
     docker exec \
       -u haf_admin \
       -w /home/haf_admin \

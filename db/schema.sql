@@ -308,6 +308,11 @@ BEGIN
         RETURN;
     END IF;
 
+    IF nfttracker_app.do_nft_indexes_exist() THEN
+        RAISE NOTICE 'NFT custom_json index already exists — skipping';
+        RETURN;
+    END IF;
+
     RAISE NOTICE 'Creating custom_json type index for NFT operations...';
     PERFORM hive.create_custom_json_type_index(ARRAY['NFT']);
 END $$;
