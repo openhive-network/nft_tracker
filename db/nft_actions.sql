@@ -237,7 +237,7 @@ BEGIN
         b.created_at,
         b.created_at
       FROM json_fields AS j
-      JOIN hive.blocks_view AS b ON b.num = _block_num
+      JOIN hafd.blocks AS b ON b.num = _block_num
       JOIN hafd.accounts AS o ON o.name = j.owner
       JOIN hafd.accounts AS a ON a.name = _account
       RETURNING id, (SELECT issuers FROM json_fields LIMIT 1) AS issuers
@@ -316,7 +316,7 @@ BEGIN
       max_count = COALESCE(_max_count, t.max_count),
       updated_at = b.created_at
     FROM json_fields AS j
-    JOIN hive.blocks_view AS b ON b.num = _block_num
+    JOIN hafd.blocks AS b ON b.num = _block_num
     LEFT JOIN hafd.accounts AS o ON o.name = j.owner
     JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
     WHERE t.symbol = j.symbol_name
@@ -402,7 +402,7 @@ BEGIN
     b.created_at,
     b.created_at
   FROM json_fields AS j
-  JOIN hive.blocks_view AS b ON b.num = _block_num
+  JOIN hafd.blocks AS b ON b.num = _block_num
   JOIN hafd.accounts AS h ON h.name = j.holder
   JOIN hafd.accounts AS ns ON ns.name = j.symbol_namespace
   JOIN hafd.accounts AS i ON i.name = _account
@@ -435,7 +435,7 @@ BEGIN
   FROM jsonb_to_record(_json) AS j(symbol text, ids NUMERIC[], soulbound boolean)
   JOIN hafd.accounts AS ns ON ns.name = (j.symbol::nfttracker_app.symbol).namespace
   JOIN nfttracker_app.types AS t ON t.symbol = (j.symbol::nfttracker_app.symbol).name AND t.creator = ns.id
-  JOIN hive.blocks_view AS b ON b.num = _block_num
+  JOIN hafd.blocks AS b ON b.num = _block_num
   WHERE i.id = ANY(j.ids) AND i.type_id = t.id;
 END
 $$;
