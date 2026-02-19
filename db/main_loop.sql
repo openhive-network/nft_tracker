@@ -119,7 +119,7 @@ BEGIN
         o.body_binary::hive.custom_json_operation as op
       FROM hive.operations_view AS o
       WHERE o.op_type_id = nfttracker_backend.op_custom_json()
-      AND o.custom_json_type_id = nfttracker_backend.custom_json_nft_type_id()
+      AND o.body->'value'->>'id' = 'NFT'
       AND o.block_num BETWEEN _first_block_num AND _last_block_num
     ) AS x
   ),
