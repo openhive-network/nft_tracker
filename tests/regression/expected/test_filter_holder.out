@@ -1,0 +1,124 @@
+-- Test the holder filter parameter on get_nft_instances and get_nft_instances_with_tags
+-- Given: register alice/ABC with max_count=10
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/ABC', name=>'t', owner=>'alice', issuers=>ARRAY['alice'], max_count=>10);
+-- Issue 6 instances across 3 holders with 2 tags (X and Y)
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/ABC', holder=>'alice', data=>'{}', tags=>ARRAY['X']::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>3, auth=>'alice', symbol=>'alice/ABC', holder=>'bob',   data=>'{}', tags=>ARRAY['X']::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>4, auth=>'alice', symbol=>'alice/ABC', holder=>'dan',   data=>'{}', tags=>ARRAY['X']::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>5, auth=>'alice', symbol=>'alice/ABC', holder=>'alice', data=>'{}', tags=>ARRAY['Y']::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>6, auth=>'alice', symbol=>'alice/ABC', holder=>'bob',   data=>'{}', tags=>ARRAY['Y']::nfttracker_app.tags, soulbound=>FALSE);
+CALL insert_nft_issue_op(block_num=>7, auth=>'alice', symbol=>'alice/ABC', holder=>'dan',   data=>'{}', tags=>ARRAY['Y']::nfttracker_app.tags, soulbound=>FALSE);
+-- When
+CALL nfttracker_sync_blocks();
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'live' block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 3...
+NOTICE:  nfttracker processed block 3 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 4...
+NOTICE:  nfttracker processed block 4 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 5...
+NOTICE:  nfttracker processed block 5 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 6...
+NOTICE:  nfttracker processed block 6 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 7...
+NOTICE:  nfttracker processed block 7 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 7.
+-- Verify all 6 instances exist
+SELECT COUNT(*) FROM instances_view;
+ count 
+-------
+     6
+(1 row)
+
+-- Test 1: holder=alice (no tags) => 2
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances('alice','ABC','alice',NULL,NULL));
+ count 
+-------
+     2
+(1 row)
+
+-- Test 2: holder=bob => 2
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances('alice','ABC','bob',NULL,NULL));
+ count 
+-------
+     2
+(1 row)
+
+-- Test 3: holder=dan => 2
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances('alice','ABC','dan',NULL,NULL));
+ count 
+-------
+     2
+(1 row)
+
+-- Test 4: no holder (NULL) => all 6
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances('alice','ABC',NULL,NULL,NULL));
+ count 
+-------
+     6
+(1 row)
+
+-- Test 5: nonexistent holder => 0
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances('alice','ABC','charlie',NULL,NULL));
+ count 
+-------
+     0
+(1 row)
+
+-- Test 6: holder=alice + tag=X => 1
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances_with_tags('alice','ABC','X','alice',NULL,NULL));
+ count 
+-------
+     1
+(1 row)
+
+-- Test 7: holder=bob + tag=Y => 1
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances_with_tags('alice','ABC','Y','bob',NULL,NULL));
+ count 
+-------
+     1
+(1 row)
+
+-- Test 8: holder=dan + tag=X => 1
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances_with_tags('alice','ABC','X','dan',NULL,NULL));
+ count 
+-------
+     1
+(1 row)
+
+-- Test 9: no holder + tag=X => 3
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances_with_tags('alice','ABC','X',NULL,NULL,NULL));
+ count 
+-------
+     3
+(1 row)
+
+-- Test 10: holder=alice + pagination (count=1) => 1
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances('alice','ABC','alice',1,NULL));
+ count 
+-------
+     1
+(1 row)
+
+-- Test 11: holder=alice + pagination page 2 using last_id from first instance
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_instances('alice','ABC','alice',1,
+    (SELECT (unnest(nfttracker_endpoints.get_nft_instances('alice','ABC','alice',1,NULL))).id)));
+ count 
+-------
+     1
+(1 row)
+

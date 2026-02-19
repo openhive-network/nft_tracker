@@ -41,6 +41,15 @@ quiet "$SETUP_SCRIPT" \
 
 quiet _psql -f ../setup.sql
 quiet _psql -f ../../db/schema.sql -f ../../db/operation_types.sql -f ../../db/nft_actions.sql -f ../../db/main_loop.sql
+quiet _psql -c "SET custom.swagger_url = 'localhost';" -f ../../endpoints/endpoint_schema.sql
+quiet _psql \
+    -f ../../endpoints/types/nft_type.sql \
+    -f ../../endpoints/types/nft_instance.sql \
+    -f ../../endpoints/backend/get_nft_instances.sql \
+    -f ../../endpoints/get_version.sql \
+    -f ../../endpoints/get_nft_types.sql \
+    -f ../../endpoints/get_nft_instances_with_tags.sql \
+    -f ../../endpoints/get_nft_instances.sql
 quiet _psql -f ../prelude.sql
 
 if [ "$VERBOSE" = "1" ]; then
