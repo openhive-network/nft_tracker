@@ -12,7 +12,7 @@ variables:
   # Pin to a specific version for reproducible CI. Update when HAF
   # releases schema changes that affect nfttracker (check HAF changelog).
   HAF_REGISTRY: "registry.gitlab.syncad.com/hive/haf"
-  HAF_VERSION: "10c74432"
+  HAF_VERSION: "2c6a8b1c"
   # common-ci-configuration reference for fetching scripts
   COMMON_CI_REF: "develop"
   # Git configuration
