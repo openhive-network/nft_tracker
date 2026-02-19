@@ -84,7 +84,7 @@ CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "symbol" TEXT,
     "holder" TEXT = NULL,
     "count" INT = NULL,
-    "last_id" NUMERIC = NULL
+    "last_id" TEXT = NULL
 )
 RETURNS nfttracker_endpoints.nft_instance[] 
 -- openapi-generated-code-end
@@ -94,7 +94,7 @@ $$
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
-  RETURN nfttracker_backend.get_nft_instances(creator, symbol, NULL, holder, "count", last_id);
+  RETURN nfttracker_backend.get_nft_instances(creator, symbol, NULL, holder, "count", last_id::NUMERIC);
 END
 $$;
 
