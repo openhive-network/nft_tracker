@@ -20,11 +20,10 @@ CREATE OR REPLACE PROCEDURE insert_nft_operation(block_num INT, pos INT, auth ha
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO hafd.operations (id, trx_in_block, op_type_id, op_pos, body_binary, custom_json_type_id)
-    VALUES (hafd.operation_id(block_num, pos), 0,
+    INSERT INTO hafd.operations (block_id, id, trx_in_block, op_type_id, op_pos, body_binary)
+    VALUES (hafd.make_block_id(block_num, 1), hafd.operation_id(block_num, pos), 0,
             nfttracker_backend.op_custom_json(), pos,
-            format_nft_operation(block_num, pos, auth, data)::jsonb::hafd.operation,
-            nfttracker_backend.custom_json_nft_type_id());
+            format_nft_operation(block_num, pos, auth, data)::jsonb::hafd.operation);
 END;
 $$;
 
