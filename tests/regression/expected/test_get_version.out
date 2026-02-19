@@ -1,0 +1,6 @@
+SELECT nfttracker_endpoints.get_version();
+ get_version 
+-------------
+ development
+(1 row)
+

@@ -1,0 +1,64 @@
+-- Test pagination for get_nft_types endpoint
+-- Register 3 types in the same block with different positions to avoid duplicate keys
+CALL insert_nft_register_op(block_num=>1, pos=>0, auth=>'alice', symbol=>'alice/A', name=>'t1', owner=>'alice', issuers=>ARRAY['alice'], max_count=>10);
+CALL insert_nft_register_op(block_num=>1, pos=>1, auth=>'alice', symbol=>'alice/B', name=>'t2', owner=>'alice', issuers=>ARRAY['alice'], max_count=>10);
+CALL insert_nft_register_op(block_num=>1, pos=>2, auth=>'alice', symbol=>'alice/C', name=>'t3', owner=>'alice', issuers=>ARRAY['alice'], max_count=>10);
+CALL nfttracker_sync_blocks();
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'live' block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 1.
+-- Verify all 3 types exist
+SELECT COUNT(*) FROM types_view;
+ count 
+-------
+     3
+(1 row)
+
+-- count=1 => 1
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_types(1, NULL));
+ count 
+-------
+     1
+(1 row)
+
+-- count=2 => 2
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_types(2, NULL));
+ count 
+-------
+     2
+(1 row)
+
+-- no count => all 3
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_types(NULL, NULL));
+ count 
+-------
+     3
+(1 row)
+
+-- after id=1 => 2
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_types(NULL, 1));
+ count 
+-------
+     2
+(1 row)
+
+-- count=1 after id=1 => 1
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_types(1, 1));
+ count 
+-------
+     1
+(1 row)
+
+-- after last id => 0
+SELECT COUNT(*) FROM unnest(nfttracker_endpoints.get_nft_types(10, 3));
+ count 
+-------
+     0
+(1 row)
+
