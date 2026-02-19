@@ -5,6 +5,7 @@ CREATE OR REPLACE FUNCTION nfttracker_backend.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT,
     "tags" TEXT,
+    "holder" TEXT DEFAULT NULL,
     "p_count" INTEGER DEFAULT NULL,
     "p_last_id" NUMERIC DEFAULT NULL
 )
@@ -16,6 +17,7 @@ DECLARE
   _creator TEXT := creator;
   _symbol TEXT := symbol;
   _tags TEXT := NULLIF(tags, '');
+  _holder TEXT := NULLIF(holder, '');
 BEGIN
   RETURN COALESCE(ARRAY(
     SELECT ROW(
@@ -32,6 +34,7 @@ BEGIN
     LEFT JOIN hafd.accounts AS h ON i.holder = h.id
     WHERE t.symbol = _symbol
       AND t.creator = (SELECT id FROM hafd.accounts WHERE name = _creator)
+      AND (_holder IS NULL OR i.holder = (SELECT id FROM hafd.accounts WHERE name = _holder))
       AND (_tags IS NULL OR i.tags::TEXT[] @> ANY(
         SELECT STRING_TO_ARRAY(t, ',')
         FROM UNNEST(STRING_TO_ARRAY(_tags, '|')) AS t

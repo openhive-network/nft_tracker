@@ -230,6 +230,7 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.instances (
     updated_at TIMESTAMP NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_nfts_instances_type_id ON nfttracker_app.instances(type_id);
+CREATE INDEX IF NOT EXISTS idx_nfts_instances_holder ON nfttracker_app.instances(holder);
 CREATE INDEX IF NOT EXISTS idx_nfts_instances_tags_gin ON nfttracker_app.instances USING GIN (tags);
 
 CREATE OR REPLACE FUNCTION nfttracker_app.prevent_soulbound_unset()

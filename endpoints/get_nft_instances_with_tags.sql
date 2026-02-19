@@ -38,6 +38,14 @@ SET ROLE nfttracker_owner;
           Pattern is a pipe-separated list of comma-separated tags.
           Example: `a,b|x,y|z` will match instances with tags ''a'' and ''b'', ''x'' and ''y'', or ''z''.
       - in: query
+        name: holder
+        required: false
+        schema:
+          type: string
+          default: NULL
+        description: |
+          Only return instances held by this account
+      - in: query
         name: count
         required: false
         schema:
@@ -84,6 +92,7 @@ CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances_with_tags(
     "creator" TEXT,
     "symbol" TEXT,
     "tags" TEXT,
+    "holder" TEXT = NULL,
     "count" INT = NULL,
     "last_id" NUMERIC = NULL
 )
@@ -95,7 +104,7 @@ $$
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
-  RETURN nfttracker_backend.get_nft_instances(creator, symbol, tags, "count", last_id);
+  RETURN nfttracker_backend.get_nft_instances(creator, symbol, tags, holder, "count", last_id);
 END
 $$;
 
