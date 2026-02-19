@@ -257,21 +257,65 @@ INSERT INTO nfttracker_app.nfts_app_status
 VALUES (1, FALSE)
 ON CONFLICT (id) DO NOTHING;
 
--- No-op: custom_json_type indexing is no longer available in this HAF version.
+-- Check if the custom_json partial index for NFT operations exists and is valid.
+-- Returns TRUE if the index exists or if the HAF function is not available (older HAF).
 CREATE OR REPLACE FUNCTION nfttracker_app.do_nft_indexes_exist()
 RETURNS BOOLEAN
 LANGUAGE 'plpgsql' STABLE
 AS $$
+DECLARE
+    __type_id SMALLINT;
+    __expected_name TEXT;
 BEGIN
-    RETURN TRUE;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_proc p
+        JOIN pg_namespace n ON p.pronamespace = n.oid
+        WHERE n.nspname = 'hive' AND p.proname = 'create_custom_json_type_index'
+    ) THEN
+        RETURN TRUE;  -- Not applicable on this HAF version
+    END IF;
+
+    __type_id := nfttracker_backend.custom_json_nft_type_id();
+    IF __type_id IS NULL THEN
+        RETURN FALSE;
+    END IF;
+
+    -- HAF naming convention: hive_operations_custom_json_types_{id}_idx
+    __expected_name := 'hive_operations_custom_json_types_' || __type_id || '_idx';
+
+    RETURN EXISTS (
+        SELECT 1
+        FROM pg_indexes pi
+        JOIN pg_class c ON c.relname = pi.indexname
+        JOIN pg_index i ON c.oid = i.indexrelid
+        WHERE pi.indexname = __expected_name AND i.indisvalid
+    );
 END $$;
 
+-- Create the custom_json partial index for NFT operations.
+-- Called once at the MASSIVE_PROCESSING → LIVE stage transition.
+-- On older HAF versions without create_custom_json_type_index(), does nothing.
 CREATE OR REPLACE FUNCTION nfttracker_app.create_nft_indexes()
 RETURNS VOID
 LANGUAGE 'plpgsql' VOLATILE
 AS $$
 BEGIN
-    RETURN;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_proc p
+        JOIN pg_namespace n ON p.pronamespace = n.oid
+        WHERE n.nspname = 'hive' AND p.proname = 'create_custom_json_type_index'
+    ) THEN
+        RAISE NOTICE 'hive.create_custom_json_type_index() not available — skipping';
+        RETURN;
+    END IF;
+
+    IF nfttracker_app.do_nft_indexes_exist() THEN
+        RAISE NOTICE 'NFT custom_json index already exists — skipping';
+        RETURN;
+    END IF;
+
+    RAISE NOTICE 'Creating custom_json type index for NFT operations...';
+    PERFORM hive.create_custom_json_type_index(ARRAY['NFT']);
 END $$;
 
 DO $$

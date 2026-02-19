@@ -28,7 +28,7 @@ CALL insert_nft_ops(block_num=>12, auth=>'alice', ops=>ARRAY[
 -- Insert missing blocks for mock data above
 INSERT INTO hafd.blocks
 SELECT
-  hafd.make_block_id(block_num, 1),
+  block_num,
   '\xBADD10',
   '\xCAFE10',
   '2016-06-22 19:10:48-07'::timestamp,
@@ -49,7 +49,7 @@ FROM (
   SELECT DISTINCT hafd.operation_id_to_block_num(id) AS block_num
   FROM hafd.operations
 ) AS ops
-ON CONFLICT (block_id) DO NOTHING;
+ON CONFLICT (num) DO NOTHING;
 
 -- Insert missing events for mock data above
 INSERT INTO hafd.events_queue(id, event, block_num)
