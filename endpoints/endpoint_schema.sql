@@ -279,6 +279,16 @@ DO $__$
           },
           {
             "in": "query",
+            "name": "holder",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": null
+            },
+            "description": "Only return instances held by this account\n"
+          },
+          {
+            "in": "query",
             "name": "count",
             "required": false,
             "schema": {
@@ -367,6 +377,16 @@ DO $__$
               "type": "string"
             },
             "description": "Only return instances with tags matching pattern.\nPattern is a pipe-separated list of comma-separated tags.\nExample: `a,b|x,y|z` will match instances with tags ''a'' and ''b'', ''x'' and ''y'', or ''z''.\n"
+          },
+          {
+            "in": "query",
+            "name": "holder",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": null
+            },
+            "description": "Only return instances held by this account\n"
           },
           {
             "in": "query",

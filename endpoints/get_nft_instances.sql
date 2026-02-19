@@ -29,6 +29,14 @@ SET ROLE nfttracker_owner;
           type: string
         description: NFT symbol
       - in: query
+        name: holder
+        required: false
+        schema:
+          type: string
+          default: NULL
+        description: |
+          Only return instances held by this account
+      - in: query
         name: count
         required: false
         schema:
@@ -74,6 +82,7 @@ DROP FUNCTION IF EXISTS nfttracker_endpoints.get_nft_instances;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances(
     "creator" TEXT,
     "symbol" TEXT,
+    "holder" TEXT = NULL,
     "count" INT = NULL,
     "last_id" NUMERIC = NULL
 )
@@ -85,7 +94,7 @@ $$
 BEGIN
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=2"}]', true);
 
-  RETURN nfttracker_backend.get_nft_instances(creator, symbol, NULL, "count", last_id);
+  RETURN nfttracker_backend.get_nft_instances(creator, symbol, NULL, holder, "count", last_id);
 END
 $$;
 
