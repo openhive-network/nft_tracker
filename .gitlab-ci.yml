@@ -69,6 +69,7 @@ build_images:
 
     docker build \
       -t "${REWRITER_IMAGE}:${CI_COMMIT_SHORT_SHA}" \
+      ${CI_COMMIT_TAG:+-t "${REWRITER_IMAGE}:${CI_COMMIT_TAG}"} \
       -f Dockerfile.rewriter \
       --target "${REWRITER_TARGET}" \
       --build-arg BUILD_TIME="$(date -uIseconds)" \
@@ -80,6 +81,9 @@ build_images:
       ${CI_COMMIT_TAG:+--build-arg GIT_COMMIT_TAG="$CI_COMMIT_TAG"} \
       .
     docker push "${REWRITER_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+    if [[ -n "${CI_COMMIT_TAG:-}" ]]; then
+      docker push "${REWRITER_IMAGE}:${CI_COMMIT_TAG}"
+    fi
     # publish_images job handles latest/version tagging via the publish template
   tags:
   - public-runner-docker
