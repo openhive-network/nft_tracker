@@ -128,6 +128,52 @@ DO $__$
             "description": "the timestamp this instance was last modified"
           }
         }
+      },
+      "nfttracker_endpoints.nft_instance_with_type": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "id of NFT instance"
+          },
+          "creator": {
+            "type": "string",
+            "description": "account that registered the NFT type"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "symbol name of the NFT type"
+          },
+          "holder": {
+            "type": "string",
+            "description": "account currently owning this instance"
+          },
+          "data": {
+            "type": "string",
+            "description": "extra data as JSON"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "extra tags associated with this instance"
+          },
+          "soulbound": {
+            "type": "boolean",
+            "description": "whether this instance is soulbound (cannot be transferred to other account)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "the timestamp when this instance was created"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "the timestamp this instance was last modified"
+          }
+        }
       }
     }
   },
@@ -439,6 +485,78 @@ DO $__$
           },
           "404": {
             "description": "creator/symbol combination does not exist\n"
+          }
+        }
+      }
+    },
+    "/nfts/by-trx/{trx_id}": {
+      "get": {
+        "tags": [
+          "NFT"
+        ],
+        "summary": "NFT instances by transaction",
+        "description": "Returns NFT instances created by a given transaction.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_nft_instances_by_trx(''abc123...'');`\n\nREST call example\n* `GET ''https://%1$s/nft-tracker-api/nfts/by-trx/abc123...''`\n",
+        "operationId": "nfttracker_endpoints.get_nft_instances_by_trx",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trx_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "hex-encoded transaction hash"
+          },
+          {
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Maximum number of instances to return. The value is capped at 1000, which is also the default.\n"
+          },
+          {
+            "in": "query",
+            "name": "last_id",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": null
+            },
+            "description": "Return instances with IDs greater than this value.\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "NFT instances created by the given transaction\n\n* Returns `nfttracker_endpoints.nft_instance_with_type`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/nfttracker_endpoints.nft_instance_with_type"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "123456789012345678",
+                    "creator": "alice",
+                    "symbol": "TEST",
+                    "holder": "bob",
+                    "data": "{\"key\": \"value\"}",
+                    "tags": [
+                      "item",
+                      "collectible"
+                    ],
+                    "soulbound": false,
+                    "created_at": "2025-08-22T12:00:00",
+                    "updated_at": "2025-08-22T12:00:00"
+                  }
+                ]
+              }
+            }
           }
         }
       }
