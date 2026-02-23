@@ -1,0 +1,109 @@
+-- Check that querying NFT instances by transaction hash works correctly
+-- Given: Register two types
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/CARD', name=>'Card', owner=>'alice', issuers=>ARRAY['alice']);
+CALL insert_nft_register_op(block_num=>1, auth=>'alice', symbol=>'alice/GEM', name=>'Gem', owner=>'alice', issuers=>ARRAY['alice'], pos=>1);
+-- Given: Insert two transactions in block 2
+CALL insert_transaction(block_num=>2, trx_in_block=>0::SMALLINT, trx_hash=>decode('aaaa' || repeat('00', 18), 'hex'));
+CALL insert_transaction(block_num=>2, trx_in_block=>1::SMALLINT, trx_hash=>decode('bbbb' || repeat('00', 18), 'hex'));
+-- Given: Issue 3 CARD + 2 GEM in transaction A, 1 CARD in transaction B
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/CARD', holder=>'bob', data=>'{"n":1}', tags=>ARRAY['t1']::nfttracker_app.tags, soulbound=>FALSE, pos=>0, trx_in_block=>0::SMALLINT);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/CARD', holder=>'bob', data=>'{"n":2}', tags=>ARRAY['t2']::nfttracker_app.tags, soulbound=>FALSE, pos=>1, trx_in_block=>0::SMALLINT);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/CARD', holder=>'charlie', data=>'{"n":3}', tags=>ARRAY['t3']::nfttracker_app.tags, soulbound=>FALSE, pos=>2, trx_in_block=>0::SMALLINT);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/GEM', holder=>'charlie', data=>'{"g":1}', tags=>ARRAY['r1']::nfttracker_app.tags, soulbound=>FALSE, pos=>3, trx_in_block=>0::SMALLINT);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/GEM', holder=>'bob', data=>'{"g":2}', tags=>ARRAY['r2']::nfttracker_app.tags, soulbound=>TRUE, pos=>4, trx_in_block=>0::SMALLINT);
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/CARD', holder=>'bob', data=>'{"n":4}', tags=>ARRAY['t4']::nfttracker_app.tags, soulbound=>TRUE, pos=>5, trx_in_block=>1::SMALLINT);
+-- When
+CALL nfttracker_sync_blocks();
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'N/A' block: 0 fork: 1 head block: 9 head fork: 1
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  Waiting for next block...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
+-- Then: Query by trx A hash -> 5 results (3 CARD + 2 GEM) with correct creator/symbol
+SELECT id IS NOT NULL AS has_id, creator, symbol, holder, data, tags, soulbound
+FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18)));
+ has_id | creator | symbol | holder  |   data   | tags | soulbound 
+--------+---------+--------+---------+----------+------+-----------
+ t      | alice   | CARD   | bob     | {"n": 1} | {t1} | f
+ t      | alice   | CARD   | bob     | {"n": 2} | {t2} | f
+ t      | alice   | CARD   | charlie | {"n": 3} | {t3} | f
+ t      | alice   | GEM    | charlie | {"g": 1} | {r1} | f
+ t      | alice   | GEM    | bob     | {"g": 2} | {r2} | t
+(5 rows)
+
+-- Then: Query by trx B hash -> 1 result
+SELECT id IS NOT NULL AS has_id, creator, symbol, holder, data, tags, soulbound
+FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('bbbb' || repeat('00', 18)));
+ has_id | creator | symbol | holder |   data   | tags | soulbound 
+--------+---------+--------+--------+----------+------+-----------
+ t      | alice   | CARD   | bob    | {"n": 4} | {t4} | t
+(1 row)
+
+-- Then: Query by nonexistent hash -> 0 results
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx(repeat('ff', 20)));
+ count 
+-------
+     0
+(1 row)
+
+-- Then: Pagination - count=2 returns first 2 of 5
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), 2));
+ count 
+-------
+     2
+(1 row)
+
+-- Then: Pagination - last_id from first page skips first 2, returns remaining 3
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), NULL,
+    (SELECT MAX(id) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), 2)))));
+ count 
+-------
+     3
+(1 row)
+
+-- Then: Pagination - count=2 + last_id returns page 2 of 3 pages
+SELECT creator, symbol, holder FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), 2,
+    (SELECT MAX(id) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), 2)))));
+ creator | symbol | holder  
+---------+--------+---------
+ alice   | CARD   | charlie
+ alice   | GEM    | charlie
+(2 rows)
+
+-- Then: Pagination - page 3 (last page) returns final 1 instance
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), 2,
+    (SELECT MAX(id) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), 4)))));
+ count 
+-------
+     1
+(1 row)
+
+-- Then: Pagination - last_id past final instance returns 0
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18), NULL,
+    (SELECT MAX(id) FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaaa' || repeat('00', 18))))));
+ count 
+-------
+     0
+(1 row)
+
+-- Then: Invalid hex characters -> error
+SELECT * FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('not_valid_hex'));
+ERROR:  Invalid transaction hash: expected 40 hex characters, got: not_valid_hex
+-- Then: Odd-length hex string -> error
+SELECT * FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aaa'));
+ERROR:  Invalid transaction hash: expected 40 hex characters, got: aaa
+-- Then: Too short (valid hex but wrong length) -> error
+SELECT * FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx('aabb'));
+ERROR:  Invalid transaction hash: expected 40 hex characters, got: aabb
+-- Then: Empty string -> error
+SELECT * FROM unnest(nfttracker_endpoints.get_nft_instances_by_trx(''));
+ERROR:  Invalid transaction hash: expected 40 hex characters, got: 

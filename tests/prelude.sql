@@ -16,15 +16,24 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_operation(block_num INT, pos INT, auth hafd.account_name_type, data jsonb)
+CREATE OR REPLACE PROCEDURE insert_nft_operation(block_num INT, pos INT, auth hafd.account_name_type, data jsonb, trx_in_block SMALLINT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
     INSERT INTO hafd.operations (block_id, id, trx_in_block, op_type_id, op_pos, body_binary, custom_json_type_id)
-    VALUES (hafd.make_block_id(block_num, 1), hafd.operation_id(block_num, pos), 0,
+    VALUES (hafd.make_block_id(block_num, 1), hafd.operation_id(block_num, pos), trx_in_block,
             nfttracker_backend.op_custom_json(), pos,
             format_nft_operation(block_num, pos, auth, data)::jsonb::hafd.operation,
             nfttracker_backend.custom_json_nft_type_id());
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE insert_transaction(block_num INT, trx_in_block SMALLINT, trx_hash BYTEA)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO hafd.transactions (block_id, trx_in_block, trx_hash, ref_block_num, ref_block_prefix, expiration, signature)
+    VALUES (hafd.make_block_id(block_num, 1), trx_in_block, trx_hash, 0, 0, '2025-01-01'::TIMESTAMP, decode(repeat('00', 65), 'hex'));
 END;
 $$;
 
@@ -89,11 +98,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hafd.account_name_type, symbol TEXT, holder hafd.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool, pos INT DEFAULT 0)
+CREATE OR REPLACE PROCEDURE insert_nft_issue_op(block_num INT, auth hafd.account_name_type, symbol TEXT, holder hafd.account_name_type, data jsonb, tags nfttracker_app.tags, soulbound bool, pos INT DEFAULT 0, trx_in_block SMALLINT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    CALL insert_nft_operation(block_num, pos, auth, nft_issue_op(symbol, holder, data, tags, soulbound)::jsonb);
+    CALL insert_nft_operation(block_num, pos, auth, nft_issue_op(symbol, holder, data, tags, soulbound)::jsonb, trx_in_block);
 END;
 $$;
 

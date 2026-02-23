@@ -45,11 +45,14 @@ quiet _psql -c "SET custom.swagger_url = 'localhost';" -f ../../endpoints/endpoi
 quiet _psql \
     -f ../../endpoints/types/nft_type.sql \
     -f ../../endpoints/types/nft_instance.sql \
+    -f ../../endpoints/types/nft_instance_with_type.sql \
     -f ../../endpoints/backend/get_nft_instances.sql \
+    -f ../../endpoints/backend/get_nft_instances_by_trx.sql \
     -f ../../endpoints/get_version.sql \
     -f ../../endpoints/get_nft_types.sql \
     -f ../../endpoints/get_nft_instances_with_tags.sql \
-    -f ../../endpoints/get_nft_instances.sql
+    -f ../../endpoints/get_nft_instances.sql \
+    -f ../../endpoints/get_nft_instances_by_trx.sql
 quiet _psql -f ../prelude.sql
 
 if [ "$VERBOSE" = "1" ]; then

@@ -389,6 +389,7 @@ BEGIN
     data,
     tags,
     soulbound,
+    operation_id,
     created_at,
     updated_at
   )
@@ -399,6 +400,7 @@ BEGIN
     j.data,
     j.tags,
     j.soulbound,
+    _operation_id,
     b.created_at,
     b.created_at
   FROM json_fields AS j
