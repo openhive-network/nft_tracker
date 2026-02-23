@@ -69,7 +69,7 @@ CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_nft_instances_by_trx(
     "count" INT = NULL,
     "last_id" TEXT = NULL
 )
-RETURNS nfttracker_endpoints.nft_instance_with_type[]
+RETURNS nfttracker_endpoints.nft_instance_with_type[] 
 -- openapi-generated-code-end
 LANGUAGE 'plpgsql' STABLE
 AS
