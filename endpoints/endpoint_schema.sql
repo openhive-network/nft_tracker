@@ -9,7 +9,7 @@ info:
   license:
     name: MIT License
     url: https://opensource.org/license/mit
-  version: 0.1.0
+  version: 0.0.0-dev
 externalDocs:
   description: NFT Tracker gitlab repository
   url: https://gitlab.syncad.com/hive/nft_tracker
@@ -185,7 +185,7 @@ DO $__$
       "name": "MIT License",
       "url": "https://opensource.org/license/mit"
     },
-    "version": "0.1.0"
+    "version": "0.0.0-dev"
   },
   "externalDocs": {
     "description": "NFT Tracker gitlab repository",
