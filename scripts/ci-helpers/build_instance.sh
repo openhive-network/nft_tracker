@@ -107,7 +107,7 @@ export GIT_LAST_COMMIT_DATE
 
 # Resolve API version from git tags for OpenAPI spec injection
 git fetch --tags --quiet 2>/dev/null || true
-API_VERSION="$(git describe --tags --abbrev=0 2>/dev/null || echo dev)"
+API_VERSION="$(git describe --tags 2>/dev/null || echo 0.0.0-dev)"
 export API_VERSION
 
 CI_REGISTRY_IMAGE="$REGISTRY"

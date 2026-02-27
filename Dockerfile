@@ -3,7 +3,7 @@ ARG PSQL_CLIENT_VERSION=14-1
 FROM registry.gitlab.syncad.com/hive/common-ci-configuration/psql:${PSQL_CLIENT_VERSION} AS psql
 
 FROM psql AS version-injection
-ARG API_VERSION="dev"
+ARG API_VERSION="0.0.0-dev"
 COPY . /tmp/src
 WORKDIR /tmp/src
 RUN sed -i 's|"version": "[^"]*"|"version": "'"$API_VERSION"'"|' endpoints/endpoint_schema.sql \
@@ -17,11 +17,12 @@ ARG GIT_CURRENT_BRANCH
 ARG GIT_LAST_LOG_MESSAGE
 ARG GIT_LAST_COMMITTER
 ARG GIT_LAST_COMMIT_DATE
+ARG API_VERSION="0.0.0-dev"
 LABEL org.opencontainers.image.created="$BUILD_TIME"
 LABEL org.opencontainers.image.url="https://hive.io/"
 LABEL org.opencontainers.image.documentation="https://gitlab.syncad.com/hive/nft_tracker"
 LABEL org.opencontainers.image.source="https://gitlab.syncad.com/hive/nft_tracker"
-#LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.version="$API_VERSION"
 LABEL org.opencontainers.image.revision="$GIT_COMMIT_SHA"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name="NFT Tracker"
