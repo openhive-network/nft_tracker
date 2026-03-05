@@ -64,7 +64,7 @@ The script tears down all containers automatically on exit.
 |----------|---------|
 | `NFT_TRACKER_IMAGE` | `registry.gitlab.syncad.com/hive/nft_tracker:latest` |
 | `REWRITER_IMAGE` | `registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:latest` |
-| `HAF_IMAGE` | `registry.gitlab.syncad.com/hive/haf:9f8bc727` |
+| `HAF_IMAGE` | `registry.gitlab.syncad.com/hive/haf:1.27.11` |
 
 To test CI-built images, set the image variables to the commit-SHA-tagged images:
 
