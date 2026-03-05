@@ -2,7 +2,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend } from 'k6/metrics';
-import { BASE_URL, SAMPLE_CREATORS, SAMPLE_SYMBOLS, DEFAULT_THRESHOLDS } from './config.js';
+import { BASE_URL, CREATOR_SYMBOL_PAIRS, DEFAULT_THRESHOLDS } from './config.js';
 
 const VUS = parseInt(__ENV.VUS || '5');
 const DURATION = __ENV.DURATION || '15m';
@@ -34,10 +34,9 @@ export default function () {
   typesLatency.add(res.timings.duration);
 
   // NFT Instances
-  const creator = randomItem(SAMPLE_CREATORS);
-  const symbol = randomItem(SAMPLE_SYMBOLS);
-  res = http.get(`${BASE_URL}/nfts/${creator}/${symbol}`);
-  check(res, { 'instances ok': (r) => r.status === 200 || r.status === 404 });
+  const pair = randomItem(CREATOR_SYMBOL_PAIRS);
+  res = http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}`);
+  check(res, { 'instances ok': (r) => r.status === 200 });
   instancesLatency.add(res.timings.duration);
 
   sleep(1 + Math.random());

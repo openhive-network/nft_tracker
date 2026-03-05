@@ -1,7 +1,7 @@
 // Load test: sustained traffic across all endpoints
 import http from 'k6/http';
 import { check, group, sleep } from 'k6';
-import { BASE_URL, SAMPLE_CREATORS, SAMPLE_SYMBOLS, SAMPLE_TAGS, SAMPLE_TRX_IDS, DEFAULT_THRESHOLDS } from './config.js';
+import { BASE_URL, CREATOR_SYMBOL_PAIRS, SAMPLE_TAGS, SAMPLE_TRX_IDS, DEFAULT_THRESHOLDS } from './config.js';
 
 const DURATION = __ENV.DURATION || '2m';
 const VUS = parseInt(__ENV.VUS || '10');
@@ -40,26 +40,23 @@ export default function () {
   });
 
   group('NFT Instances', () => {
-    const creator = randomItem(SAMPLE_CREATORS);
-    const symbol = randomItem(SAMPLE_SYMBOLS);
-    const res = http.get(`${BASE_URL}/nfts/${creator}/${symbol}`);
-    check(res, { 'status 200 or 404': (r) => r.status === 200 || r.status === 404 });
+    const pair = randomItem(CREATOR_SYMBOL_PAIRS);
+    const res = http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}`);
+    check(res, { 'status 200': (r) => r.status === 200 });
   });
 
-  group('NFT Instances with holder', () => {
-    const creator = randomItem(SAMPLE_CREATORS);
-    const symbol = randomItem(SAMPLE_SYMBOLS);
-    const holder = randomItem(SAMPLE_CREATORS);
-    const res = http.get(`${BASE_URL}/nfts/${creator}/${symbol}?holder=${holder}`);
-    check(res, { 'status 200 or 404': (r) => r.status === 200 || r.status === 404 });
+  group('NFT Instances paginated', () => {
+    const pair = randomItem(CREATOR_SYMBOL_PAIRS);
+    const count = Math.floor(Math.random() * 20) + 1;
+    const res = http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}?count=${count}`);
+    check(res, { 'status 200': (r) => r.status === 200 });
   });
 
   group('NFT Instances with tags', () => {
-    const creator = randomItem(SAMPLE_CREATORS);
-    const symbol = randomItem(SAMPLE_SYMBOLS);
+    const pair = randomItem(CREATOR_SYMBOL_PAIRS);
     const tags = randomItem(SAMPLE_TAGS);
-    const res = http.get(`${BASE_URL}/nfts/${creator}/${symbol}/${tags}`);
-    check(res, { 'status 200 or 404': (r) => r.status === 200 || r.status === 404 });
+    const res = http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}/${tags}`);
+    check(res, { 'status 200': (r) => r.status === 200 });
   });
 
   group('NFT Instances by transaction', () => {

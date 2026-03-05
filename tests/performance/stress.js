@@ -1,7 +1,7 @@
 // Stress test: push the API beyond normal load to find breaking points
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { BASE_URL, SAMPLE_CREATORS, SAMPLE_SYMBOLS, SAMPLE_TAGS, SAMPLE_TRX_IDS } from './config.js';
+import { BASE_URL, CREATOR_SYMBOL_PAIRS, SAMPLE_TAGS, SAMPLE_TRX_IDS } from './config.js';
 
 const MAX_VUS = parseInt(__ENV.MAX_VUS || '50');
 
@@ -54,16 +54,14 @@ function getTypesPaginated() {
 }
 
 function getInstances() {
-  const creator = randomItem(SAMPLE_CREATORS);
-  const symbol = randomItem(SAMPLE_SYMBOLS);
-  return http.get(`${BASE_URL}/nfts/${creator}/${symbol}`);
+  const pair = randomItem(CREATOR_SYMBOL_PAIRS);
+  return http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}`);
 }
 
 function getInstancesWithTags() {
-  const creator = randomItem(SAMPLE_CREATORS);
-  const symbol = randomItem(SAMPLE_SYMBOLS);
+  const pair = randomItem(CREATOR_SYMBOL_PAIRS);
   const tags = randomItem(SAMPLE_TAGS);
-  return http.get(`${BASE_URL}/nfts/${creator}/${symbol}/${tags}`);
+  return http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}/${tags}`);
 }
 
 function getInstancesByTrx() {

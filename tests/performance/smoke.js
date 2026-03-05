@@ -1,7 +1,7 @@
 // Smoke test: verify all endpoints respond under minimal load
 import http from 'k6/http';
 import { check, group } from 'k6';
-import { BASE_URL, SAMPLE_CREATORS, SAMPLE_SYMBOLS, SAMPLE_TAGS, SAMPLE_TRX_IDS } from './config.js';
+import { BASE_URL, CREATOR_SYMBOL_PAIRS, SAMPLE_TAGS, SAMPLE_TRX_IDS } from './config.js';
 
 export const options = {
   vus: 1,
@@ -18,6 +18,7 @@ export default function () {
     check(res, {
       'root returns 200': (r) => r.status === 200,
       'root returns JSON': (r) => r.headers['Content-Type']?.includes('application/json'),
+      'root contains openapi field': (r) => r.json().openapi !== undefined,
     });
   });
 
@@ -25,6 +26,7 @@ export default function () {
     const res = http.get(`${BASE_URL}/version`);
     check(res, {
       'version returns 200': (r) => r.status === 200,
+      'version is non-empty': (r) => r.body.length > 2,
     });
   });
 
@@ -32,33 +34,49 @@ export default function () {
     const res = http.get(`${BASE_URL}/nfts`);
     check(res, {
       'nfts returns 200': (r) => r.status === 200,
-      'nfts returns array': (r) => Array.isArray(r.json()),
+      'nfts returns non-empty array': (r) => {
+        const data = r.json();
+        return Array.isArray(data) && data.length > 0;
+      },
     });
   });
 
   group('NFT Types with pagination', () => {
-    const res = http.get(`${BASE_URL}/nfts?count=10`);
+    const res = http.get(`${BASE_URL}/nfts?count=1`);
     check(res, {
       'nfts paginated returns 200': (r) => r.status === 200,
+      'nfts paginated respects count': (r) => r.json().length <= 1,
     });
   });
 
   group('NFT Instances', () => {
-    const creator = SAMPLE_CREATORS[0];
-    const symbol = SAMPLE_SYMBOLS[0];
-    const res = http.get(`${BASE_URL}/nfts/${creator}/${symbol}`);
+    const pair = CREATOR_SYMBOL_PAIRS[0];
+    const res = http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}`);
     check(res, {
-      'instances returns 200 or 404': (r) => r.status === 200 || r.status === 404,
+      'instances returns 200': (r) => r.status === 200,
+      'instances returns non-empty array': (r) => {
+        const data = r.json();
+        return Array.isArray(data) && data.length > 0;
+      },
+    });
+  });
+
+  group('NFT Instances with pagination', () => {
+    const pair = CREATOR_SYMBOL_PAIRS[0];
+    const res = http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}?count=2`);
+    check(res, {
+      'instances paginated returns 200': (r) => r.status === 200,
+      'instances paginated respects count': (r) => r.json().length <= 2,
     });
   });
 
   group('NFT Instances with tags', () => {
-    const creator = SAMPLE_CREATORS[0];
-    const symbol = SAMPLE_SYMBOLS[0];
+    const pair = CREATOR_SYMBOL_PAIRS[0];
     const tags = SAMPLE_TAGS[0];
-    const res = http.get(`${BASE_URL}/nfts/${creator}/${symbol}/${tags}`);
+    const res = http.get(`${BASE_URL}/nfts/${pair.creator}/${pair.symbol}/${tags}`);
     check(res, {
-      'instances with tags returns 200 or 404': (r) => r.status === 200 || r.status === 404,
+      'instances with tags returns 200': (r) => r.status === 200,
+      'instances with tags returns array': (r) => Array.isArray(r.json()),
     });
   });
 
@@ -67,6 +85,7 @@ export default function () {
     const res = http.get(`${BASE_URL}/nfts/by-trx/${trxId}`);
     check(res, {
       'by-trx returns 200': (r) => r.status === 200,
+      'by-trx returns array': (r) => Array.isArray(r.json()),
     });
   });
 }

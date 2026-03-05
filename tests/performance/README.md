@@ -107,10 +107,10 @@ All tests accept environment variables via `-e KEY=VALUE`:
 | `VUS` | Virtual users (load/soak) | 10 / 5 |
 | `MAX_VUS` | Peak virtual users (stress) | 50 |
 | `DURATION` | Test duration (load/soak) | 2m / 15m |
-| `CREATORS` | Comma-separated creator accounts | `alice,bob,charlie` |
-| `SYMBOLS` | Comma-separated NFT symbols | `CARD,ART,BADGE` |
-| `TAGS` | Pipe-separated tag patterns | `item,collectible\|rare` |
-| `TRX_IDS` | Comma-separated transaction IDs | `abc123def456,789012345678` |
+| `CREATORS` | Comma-separated creator accounts | `zingtoken,omgomg` |
+| `SYMBOLS` | Comma-separated NFT symbols | `ZING,HERO` |
+| `TAGS` | Pipe-separated tag patterns | `Creature\|wolf,hero\|Item` |
+| `TRX_IDS` | Comma-separated 40-char hex transaction hashes | (real hashes from production) |
 
 ## Default Thresholds
 
@@ -123,6 +123,6 @@ All tests accept environment variables via `-e KEY=VALUE`:
 - `GET /` - OpenAPI specification
 - `GET /version` - API version
 - `GET /nfts` - List NFT types (with pagination)
-- `GET /nfts/{creator}/{symbol}` - List instances (with holder filter)
+- `GET /nfts/{creator}/{symbol}` - List instances (with pagination)
 - `GET /nfts/{creator}/{symbol}/{tags}` - Filter instances by tags
 - `GET /nfts/by-trx/{trx_id}` - Instances by transaction ID
