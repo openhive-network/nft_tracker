@@ -20,8 +20,8 @@ CREATE OR REPLACE PROCEDURE insert_nft_operation(block_num INT, pos INT, auth ha
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO hafd.operations (block_id, id, trx_in_block, op_type_id, op_pos, body_binary, custom_json_type_id)
-    VALUES (hafd.make_block_id(block_num, 1), hafd.operation_id(block_num, pos), trx_in_block,
+    INSERT INTO hafd.operations (id, trx_in_block, op_type_id, op_pos, body_binary, custom_json_type_id)
+    VALUES (hafd.operation_id(block_num, pos), trx_in_block,
             nfttracker_backend.op_custom_json(), pos,
             format_nft_operation(block_num, pos, auth, data)::jsonb::hafd.operation,
             nfttracker_backend.custom_json_nft_type_id());
@@ -32,8 +32,8 @@ CREATE OR REPLACE PROCEDURE insert_transaction(block_num INT, trx_in_block SMALL
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO hafd.transactions (block_id, trx_in_block, trx_hash, ref_block_num, ref_block_prefix, expiration, signature)
-    VALUES (hafd.make_block_id(block_num, 1), trx_in_block, trx_hash, 0, 0, '2025-01-01'::TIMESTAMP, decode(repeat('00', 65), 'hex'));
+    INSERT INTO hafd.transactions (block_num, trx_in_block, trx_hash, ref_block_num, ref_block_prefix, expiration, signature)
+    VALUES (block_num, trx_in_block, trx_hash, 0, 0, '2025-01-01'::TIMESTAMP, decode(repeat('00', 65), 'hex'));
 END;
 $$;
 
