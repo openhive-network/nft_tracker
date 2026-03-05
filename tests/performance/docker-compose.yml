@@ -68,10 +68,10 @@ services:
       - VUS=${VUS:-10}
       - MAX_VUS=${MAX_VUS:-50}
       - DURATION=${DURATION:-2m}
-      - CREATORS=${CREATORS:-alice,bob,charlie}
-      - SYMBOLS=${SYMBOLS:-CARD,ART,BADGE}
-      - TAGS=${TAGS:-item,collectible|rare}
-      - TRX_IDS=${TRX_IDS:-abc123def456,789012345678}
+      - CREATORS=${CREATORS:-zingtoken,omgomg}
+      - SYMBOLS=${SYMBOLS:-ZING,HERO}
+      - TAGS=${TAGS:-Creature|wolf,hero|Item}
+      - TRX_IDS=${TRX_IDS:-62e5752db1bca81663c57422710616baee4807a7,05e1972da71d7a65672bb161127261d177a3ec9d}
     depends_on:
       nft-tracker-rewriter:
         condition: service_healthy
