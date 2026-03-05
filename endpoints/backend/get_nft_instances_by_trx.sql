@@ -33,7 +33,7 @@ BEGIN
     JOIN hafd.accounts c ON t.creator = c.id
     JOIN hafd.operations o ON o.id = i.operation_id
     JOIN hafd.transactions tx
-      ON tx.block_id = o.block_id
+      ON tx.block_num = hafd.operation_id_to_block_num(o.id)
       AND tx.trx_in_block = o.trx_in_block
     WHERE tx.trx_hash = decode(p_trx_id, 'hex')
       AND (p_last_id IS NULL OR i.id > p_last_id)
