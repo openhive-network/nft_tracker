@@ -1,0 +1,79 @@
+services:
+  haf:
+    image: ${HAF_IMAGE:-registry.gitlab.syncad.com/hive/haf:9f8bc727}
+    command: --skip-hived
+    environment:
+      DATADIR: /home/hived/datadir
+      SHM_DIR: /home/hived/datadir/blockchain
+      PG_ACCESS: |
+        host    all    all    0.0.0.0/0    trust
+        host    all    all    ::0/0    trust
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U haf_admin -d haf_block_log -c 'SELECT 1' >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+      start_period: 10s
+
+  nft-tracker-install:
+    image: ${NFT_TRACKER_IMAGE:-registry.gitlab.syncad.com/hive/nft_tracker:latest}
+    command: install_app
+    environment:
+      POSTGRES_HOST: haf
+    depends_on:
+      haf:
+        condition: service_healthy
+
+  nft-tracker-postgrest:
+    image: ${NFT_TRACKER_IMAGE:-registry.gitlab.syncad.com/hive/nft_tracker:latest}
+    entrypoint: []
+    command: >
+      sh -c '
+        until psql "postgresql://nfttracker_owner@haf:5432/haf_block_log" -c "SELECT 1 FROM nfttracker_app.nft_types LIMIT 0" >/dev/null 2>&1; do
+          echo "Waiting for nft_tracker schema..."; sleep 2;
+        done;
+        exec /app/scripts/start_postgrest.sh --host=haf --webserver-port=3000
+      '
+    environment:
+      POSTGRES_HOST: haf
+    depends_on:
+      nft-tracker-install:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/ >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  nft-tracker-rewriter:
+    image: ${REWRITER_IMAGE:-registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:latest}
+    depends_on:
+      nft-tracker-postgrest:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:81/health >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  k6:
+    image: grafana/k6:latest
+    volumes:
+      - ./:/tests
+    working_dir: /tests
+    environment:
+      - BASE_URL=http://nft-tracker-rewriter:80/nft-tracker-api
+      - VUS=${VUS:-10}
+      - MAX_VUS=${MAX_VUS:-50}
+      - DURATION=${DURATION:-2m}
+      - CREATORS=${CREATORS:-alice,bob,charlie}
+      - SYMBOLS=${SYMBOLS:-CARD,ART,BADGE}
+      - TAGS=${TAGS:-item,collectible|rare}
+      - TRX_IDS=${TRX_IDS:-abc123def456,789012345678}
+    depends_on:
+      nft-tracker-rewriter:
+        condition: service_healthy
+    profiles:
+      - test

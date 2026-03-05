@@ -31,7 +31,53 @@ docker run --rm -i grafana/k6 run - <script.js
 | `stress.js` | Find breaking points under high load | 50 (peak) | ~4 min |
 | `soak.js` | Detect degradation over time | 5 | 15 min |
 
-## Usage
+## Docker (full stack)
+
+The included `docker-compose.yml` and `run.sh` start the entire NFT Tracker stack
+(HAF, app install, PostgREST, nginx rewriter) and run k6 against it. Only Docker
+and Docker Compose are required - no local k6 install needed.
+
+```bash
+cd tests/performance
+
+# Smoke test (pull pre-built images from registry)
+./run.sh smoke
+
+# Load test with custom parameters
+VUS=20 DURATION=5m ./run.sh load
+
+# Stress test
+MAX_VUS=100 ./run.sh stress
+
+# Build images from the local repo instead of pulling
+BUILD_LOCAL=1 ./run.sh load
+
+# Pass extra k6 flags after the scenario name
+./run.sh load --out json=/tests/results.json
+```
+
+The script tears down all containers automatically on exit.
+
+### Image overrides
+
+| Variable | Default |
+|----------|---------|
+| `NFT_TRACKER_IMAGE` | `registry.gitlab.syncad.com/hive/nft_tracker:latest` |
+| `REWRITER_IMAGE` | `registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:latest` |
+| `HAF_IMAGE` | `registry.gitlab.syncad.com/hive/haf:9f8bc727` |
+
+To test CI-built images, set the image variables to the commit-SHA-tagged images:
+
+```bash
+NFT_TRACKER_IMAGE=registry.gitlab.syncad.com/hive/nft_tracker:abc1234 \
+REWRITER_IMAGE=registry.gitlab.syncad.com/hive/nft_tracker/postgrest-rewriter:abc1234 \
+./run.sh load
+```
+
+## Direct k6 usage (against an existing instance)
+
+If you already have a running NFT Tracker API, install k6 locally and point it
+at the target URL.
 
 ```bash
 # Run against local instance (default: http://localhost:8080/nft-tracker-api)
