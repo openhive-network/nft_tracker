@@ -7,7 +7,7 @@ tar -cf - -C /home/haf_admin/workspace --exclude=.git . | tar -xf - -C /tmp/nft_
 cd /tmp/nft_tracker
 
 echo "=== Running regression tests ==="
-if ! ./regress.sh; then
+if ! ./regress.sh -v; then
     echo "=== Tests FAILED ==="
     # Print diffs to job log
     cat tests/regression/regression.diffs 2>/dev/null || true
