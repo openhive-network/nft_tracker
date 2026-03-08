@@ -275,7 +275,7 @@ BEGIN
         JOIN pg_namespace n ON p.pronamespace = n.oid
         WHERE n.nspname = 'hive' AND p.proname = 'register_custom_json_type_index'
     ) THEN
-        RAISE NOTICE 'hive.register_custom_json_type_index() not available — skipping';
+        RAISE LOG 'hive.register_custom_json_type_index() not available — skipping';
         RETURN;
     END IF;
 
