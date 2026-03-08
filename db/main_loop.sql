@@ -208,9 +208,6 @@ BEGIN
   IF hive.get_current_stage_name(_context_name) = 'MASSIVE_PROCESSING' THEN
     CALL nfttracker_app.massive_processing(_block_range.first_block, _block_range.last_block, _logs);
   ELSE
-    IF NOT nfttracker_app.do_nft_indexes_exist() THEN
-      PERFORM nfttracker_app.create_nft_indexes();
-    END IF;
     CALL nfttracker_app.single_processing(_block_range.first_block, _block_range.last_block, _logs);
   END IF;
 END
@@ -263,6 +260,11 @@ BEGIN
   END IF;
 
   PERFORM nfttracker_app.allowProcessing();
+
+  -- Register partial index on hafd.operations for NFT custom_json ops.
+  -- HAF's indexes_controler creates it concurrently when appropriate.
+  -- No-op if 'NFT' type doesn't exist yet (first sync from genesis).
+  PERFORM nfttracker_app.register_nft_index();
 
   RAISE NOTICE 'Last block processed by application: %', hive.app_get_current_block_num(_appContext);
   RAISE NOTICE 'Entering application main loop...';

@@ -271,6 +271,5 @@ LEFT JOIN hafd.accounts AS c ON t.creator = c.id
 LEFT JOIN hafd.accounts AS o ON t.owner = o.id
 ORDER BY id;
 
--- Pre-create NFT indexes so they exist before block processing starts.
--- This mirrors the pre-37324d92 behavior where indexes were created during install.
-SELECT nfttracker_app.create_nft_indexes();
+-- Register NFT custom_json index dependency so it exists before block processing.
+SELECT nfttracker_app.register_nft_index();
