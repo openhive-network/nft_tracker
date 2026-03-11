@@ -1,7 +1,7 @@
 #! /bin/bash
 set -e
 set -o pipefail
-trap 'kill 0' TERM INT
+trap 'trap - TERM INT; kill 0' TERM INT
 # Script reponsible for execution of all actions required to finish configuration of the database holding a HAF database to work correctly with hivemind.
 
 print_help () {
