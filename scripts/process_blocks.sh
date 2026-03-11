@@ -1,7 +1,6 @@
 #! /bin/bash
 set -e
 set -o pipefail
-trap 'trap - TERM INT; kill 0' TERM INT
 # Script reponsible for execution of all actions required to finish configuration of the database holding a HAF database to work correctly with hivemind.
 
 print_help () {
@@ -70,7 +69,7 @@ process_blocks() {
     local n_blocks="${1:-null}"
     log_file="nfttracker_sync.log"
     date -u +"%Y-%m-%dT%H:%M:%S+00:00" > /tmp/block_processing_startup_time.txt
-    run_with_reconnect.sh -- psql "$POSTGRES_ACCESS" -v "ON_ERROR_STOP=on" -v NFTTRACKER_SCHEMA="${NFTTRACKER_SCHEMA}" -c "\timing" -c "CALL ${NFTTRACKER_SCHEMA}.main('${NFTTRACKER_SCHEMA}', $n_blocks);" 2>&1 | tee -i "$log_file"
+    exec run_with_reconnect.sh -- psql "$POSTGRES_ACCESS" -v "ON_ERROR_STOP=on" -v NFTTRACKER_SCHEMA="${NFTTRACKER_SCHEMA}" -c "\timing" -c "CALL ${NFTTRACKER_SCHEMA}.main('${NFTTRACKER_SCHEMA}', $n_blocks);"
 }
 
 process_blocks "$PROCESS_BLOCK_LIMIT"
