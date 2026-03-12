@@ -8,6 +8,7 @@ CALL insert_nft_update_tags_op(block_num=>4, pos=>2, auth=>'bob', symbol=>'alice
 CALL insert_nft_update_tags_op(block_num=>4, pos=>3, auth=>'charlie', symbol=>'alice/XYZ', ids=>ARRAY[expected_instance_id(2,0,1)], tags=>ARRAY['charlie']::nfttracker_app.tags);
 -- When
 CALL nfttracker_sync_blocks();
+NOTICE:  Registering index dependency hive_operations_custom_json_types_1_idx for custom_json types: {NFT} (IDs: {1})
 NOTICE:  Last block processed by application: 0
 NOTICE:  Entering application main loop...
 NOTICE:  HAF instance is ready. Exiting wait loop.
