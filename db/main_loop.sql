@@ -116,7 +116,7 @@ BEGIN
       SELECT
         o.block_num,
         o.id AS operation_id,
-        o.body_binary::hive.custom_json_operation as op
+        jsonb_populate_record(NULL::hive.custom_json_operation, o.body_value) as op
       FROM hive.operations_view AS o
       WHERE o.op_type_id = nfttracker_backend.op_custom_json()
       AND o.custom_json_type_id = nfttracker_backend.custom_json_nft_type_id()

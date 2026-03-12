@@ -3,7 +3,7 @@ RETURNS TEXT
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    RETURN format('{"type":"custom_json_operation","value":{"id":"%s", "json":%s, "required_auths":[%s], "required_posting_auths":[]}}'::text, id, to_jsonb(data::text)::text, to_jsonb(auth)::text);
+    RETURN format('{"id":"%s", "json":%s, "required_auths":[%s], "required_posting_auths":[]}'::text, id, to_jsonb(data::text)::text, to_jsonb(auth)::text);
 END;
 $$;
 
@@ -20,10 +20,10 @@ CREATE OR REPLACE PROCEDURE insert_nft_operation(block_num INT, pos INT, auth ha
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO hafd.operations (id, trx_in_block, op_type_id, op_pos, body_binary, custom_json_type_id)
+    INSERT INTO hafd.operations (id, trx_in_block, op_type_id, op_pos, body_value, custom_json_type_id)
     VALUES (hafd.operation_id(block_num, pos), trx_in_block,
             nfttracker_backend.op_custom_json(), pos,
-            format_nft_operation(block_num, pos, auth, data)::jsonb::hafd.operation,
+            format_nft_operation(block_num, pos, auth, data)::jsonb,
             nfttracker_backend.custom_json_nft_type_id());
 END;
 $$;
