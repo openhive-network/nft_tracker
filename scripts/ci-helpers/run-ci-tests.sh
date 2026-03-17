@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "=== Copying workspace to writable location ==="
 mkdir -p /tmp/nft_tracker
-tar -cf - -C /home/haf_admin/workspace --exclude=.git . | tar -xf - -C /tmp/nft_tracker
+tar -cf - -C /home/hived/workspace --exclude=.git . | tar -xf - -C /tmp/nft_tracker
 cd /tmp/nft_tracker
 
 echo "=== Running regression tests ==="
