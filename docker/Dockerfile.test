@@ -8,4 +8,4 @@ RUN PG_MAJOR=$(pg_config --version | sed 's/PostgreSQL \([0-9]*\).*/\1/') \
        "postgresql-server-dev-${PG_MAJOR}" \
        make \
     && rm -rf /var/lib/apt/lists/*
-USER haf_admin
+USER hived

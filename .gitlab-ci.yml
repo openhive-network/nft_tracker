@@ -105,7 +105,8 @@ regression_tests:
     echo -e "\e[0Ksection_start:$(date +%s):pull[collapsed=true]\r\e[0KPulling test image..."
     # Test image = HAF + postgresql-server-dev + make (for pg_regress).
     # Built once per HAF_VERSION and cached in the registry.
-    HAF_TEST_IMAGE="${CI_REGISTRY_IMAGE}/haf-test:${HAF_VERSION}"
+    # Suffix encodes Dockerfile.test changes; bump when modifying that file.
+    HAF_TEST_IMAGE="${CI_REGISTRY_IMAGE}/haf-test:${HAF_VERSION}-v2"
     if ! docker pull "${HAF_TEST_IMAGE}" 2>/dev/null; then
       echo "Test image not found, building..."
       docker build \
@@ -163,13 +164,13 @@ regression_tests:
     echo -e "\e[0Ksection_end:$(date +%s):install\r\e[0K"
 
     echo -e "\e[0Ksection_start:$(date +%s):regress\r\e[0KRunning regression tests..."
-    docker exec -u haf_admin haf mkdir -p /home/haf_admin/workspace
-    tar -cf - -C "${CI_PROJECT_DIR}" --exclude=.git . | docker exec -i -u haf_admin haf tar -xf - -C /home/haf_admin/workspace
+    docker exec -u hived haf mkdir -p /home/hived/workspace
+    tar -cf - -C "${CI_PROJECT_DIR}" --exclude=.git . | docker exec -i -u hived haf tar -xf - -C /home/hived/workspace
     docker exec \
-      -u haf_admin \
-      -w /home/haf_admin \
+      -u hived \
+      -w /home/hived \
       haf \
-      bash /home/haf_admin/workspace/scripts/ci-helpers/run-ci-tests.sh
+      bash /home/hived/workspace/scripts/ci-helpers/run-ci-tests.sh
     echo -e "\e[0Ksection_end:$(date +%s):regress\r\e[0K"
   after_script:
   - |
