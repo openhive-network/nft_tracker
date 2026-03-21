@@ -38,10 +38,10 @@ USER root
 RUN <<EOF
   set -e
   mkdir /app
-  chown hived /app
+  chown haf_admin /app
 EOF
 
-USER hived
+USER haf_admin
 
 COPY scripts/install_app.sh /app/scripts/install_app.sh
 COPY scripts/uninstall_app.sh /app/scripts/uninstall_app.sh
