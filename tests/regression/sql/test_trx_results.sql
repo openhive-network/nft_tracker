@@ -27,19 +27,19 @@ CALL insert_nft_transfer_op(block_num=>4, auth=>'bob', symbol=>'alice/CARD',
 CALL nfttracker_sync_blocks();
 
 -- Then: Trx A has 2 results (1 success + 1 failure with error message)
-SELECT action, symbol, account, success, error_message
+SELECT subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('aaaa' || repeat('00', 18)));
 
 -- Then: Trx B has 1 success result
-SELECT action, symbol, account, success, error_message
+SELECT subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('bbbb' || repeat('00', 18)));
 
 -- Then: Trx C has 1 failure result
-SELECT action, symbol, account, success, error_message
+SELECT subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('cccc' || repeat('00', 18)));
 
 -- Then: Trx D has 1 success result (transfer)
-SELECT action, symbol, account, success, error_message
+SELECT subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('dddd' || repeat('00', 18)));
 
 -- Then: Nonexistent trx returns empty

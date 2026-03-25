@@ -136,6 +136,10 @@ DO $__$
             "type": "integer",
             "description": "unique result ID"
           },
+          "subsequent_no": {
+            "type": "integer",
+            "description": "0-based position of this action within the transaction''s action array"
+          },
           "action": {
             "type": "string",
             "description": "NFT action type (register, issue, transfer, etc.)"
@@ -576,6 +580,7 @@ DO $__$
                 "example": [
                   {
                     "id": 1,
+                    "subsequent_no": 0,
                     "action": "register",
                     "symbol": "alice/CARD",
                     "account": "alice",

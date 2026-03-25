@@ -5,6 +5,10 @@ nfttracker_endpoints.trx_result:
     id:
       type: integer
       description: unique result ID
+    subsequent_no:
+      type: integer
+      description: 0-based position of this action within the transaction's
+        action array
     action:
       type: string
       description: NFT action type (register, issue, transfer, etc.)
@@ -29,6 +33,7 @@ nfttracker_endpoints.trx_result:
 DROP TYPE IF EXISTS nfttracker_endpoints.trx_result CASCADE;
 CREATE TYPE nfttracker_endpoints.trx_result AS (
     "id" BIGINT,
+    "subsequent_no" BIGINT,
     "action" TEXT,
     "symbol" TEXT,
     "account" TEXT,
