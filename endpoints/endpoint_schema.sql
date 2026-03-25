@@ -136,6 +136,10 @@ DO $__$
             "type": "integer",
             "description": "unique result ID"
           },
+          "op_pos": {
+            "type": "integer",
+            "description": "position of the operation within the block"
+          },
           "subsequent_no": {
             "type": "integer",
             "description": "0-based position of this action within the transaction''s action array"
@@ -580,6 +584,7 @@ DO $__$
                 "example": [
                   {
                     "id": 1,
+                    "op_pos": 0,
                     "subsequent_no": 0,
                     "action": "register",
                     "symbol": "alice/CARD",

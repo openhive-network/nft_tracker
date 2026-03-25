@@ -53,6 +53,7 @@ SET ROLE nfttracker_owner;
                 $ref: '#/components/schemas/nfttracker_endpoints.trx_result'
             example: [{
               "id": 1,
+              "op_pos": 0,
               "subsequent_no": 0,
               "action": "register",
               "symbol": "alice/CARD",

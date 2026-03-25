@@ -18,6 +18,7 @@ BEGIN
   RETURN COALESCE(ARRAY(
     SELECT ROW(
       r.id,
+      r.op_pos,
       r.subsequent_no,
       r.action,
       r.symbol,

@@ -41,36 +41,36 @@ NOTICE:  nfttracker processed block 4 successfully in _ s
     
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 4.
 -- Then: Trx A has 2 results (1 success + 1 failure with error message)
-SELECT subsequent_no, action, symbol, account, success, error_message
+SELECT op_pos, subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('aaaa' || repeat('00', 18)));
- subsequent_no |  action  |   symbol   | account | success |           error_message            
----------------+----------+------------+---------+---------+------------------------------------
-             0 | register | alice/CARD | alice   | t       | (null)
-             0 | register | alice/CARD | alice   | f       | NFT type alice/CARD already exists
+ op_pos | subsequent_no |  action  |   symbol   | account | success |           error_message            
+--------+---------------+----------+------------+---------+---------+------------------------------------
+      0 |             0 | register | alice/CARD | alice   | t       | (null)
+      1 |             0 | register | alice/CARD | alice   | f       | NFT type alice/CARD already exists
 (2 rows)
 
 -- Then: Trx B has 1 success result
-SELECT subsequent_no, action, symbol, account, success, error_message
+SELECT op_pos, subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('bbbb' || repeat('00', 18)));
- subsequent_no | action |   symbol   | account | success | error_message 
----------------+--------+------------+---------+---------+---------------
-             0 | issue  | alice/CARD | alice   | t       | (null)
+ op_pos | subsequent_no | action |   symbol   | account | success | error_message 
+--------+---------------+--------+------------+---------+---------+---------------
+      0 |             0 | issue  | alice/CARD | alice   | t       | (null)
 (1 row)
 
 -- Then: Trx C has 1 failure result
-SELECT subsequent_no, action, symbol, account, success, error_message
+SELECT op_pos, subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('cccc' || repeat('00', 18)));
- subsequent_no |  action  |   symbol   | account | success |                                       error_message                                        
----------------+----------+------------+---------+---------+--------------------------------------------------------------------------------------------
-             0 | transfer | alice/CARD | charlie | f       | Account charlie is disallowed to transfer NFTs alice/CARD:{158456325028958171963932540928}
+ op_pos | subsequent_no |  action  |   symbol   | account | success |                                       error_message                                        
+--------+---------------+----------+------------+---------+---------+--------------------------------------------------------------------------------------------
+      0 |             0 | transfer | alice/CARD | charlie | f       | Account charlie is disallowed to transfer NFTs alice/CARD:{158456325028958171963932540928}
 (1 row)
 
 -- Then: Trx D has 1 success result (transfer)
-SELECT subsequent_no, action, symbol, account, success, error_message
+SELECT op_pos, subsequent_no, action, symbol, account, success, error_message
 FROM unnest(nfttracker_endpoints.get_trx_results('dddd' || repeat('00', 18)));
- subsequent_no |  action  |   symbol   | account | success | error_message 
----------------+----------+------------+---------+---------+---------------
-             0 | transfer | alice/CARD | bob     | t       | (null)
+ op_pos | subsequent_no |  action  |   symbol   | account | success | error_message 
+--------+---------------+----------+------------+---------+---------+---------------
+      0 |             0 | transfer | alice/CARD | bob     | t       | (null)
 (1 row)
 
 -- Then: Nonexistent trx returns empty

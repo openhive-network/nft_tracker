@@ -238,6 +238,7 @@ CREATE INDEX IF NOT EXISTS idx_nfts_instances_operation_id ON nfttracker_app.ins
 CREATE TABLE IF NOT EXISTS nfttracker_app.operation_results (
     id BIGSERIAL PRIMARY KEY,
     operation_id BIGINT NOT NULL,
+    op_pos INT NOT NULL DEFAULT 0,
     subsequent_no BIGINT NOT NULL DEFAULT 0,
     block_num INT NOT NULL,
     action TEXT,
