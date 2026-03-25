@@ -4,7 +4,7 @@ FROM registry.gitlab.syncad.com/hive/common-ci-configuration/psql:${PSQL_CLIENT_
 
 FROM psql AS version-injection
 ARG API_VERSION="0.0.0-dev"
-COPY . /tmp/src
+COPY --chown=haf_admin . /tmp/src
 WORKDIR /tmp/src
 RUN sed -i 's|"version": "[^"]*"|"version": "'"$API_VERSION"'"|' endpoints/endpoint_schema.sql \
     && sed -i 's|^  version: .*|  version: '"$API_VERSION"'|' endpoints/endpoint_schema.sql
