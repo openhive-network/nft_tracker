@@ -35,9 +35,9 @@ nfttracker_endpoints.trx_result:
 -- openapi-generated-code-begin
 DROP TYPE IF EXISTS nfttracker_endpoints.trx_result CASCADE;
 CREATE TYPE nfttracker_endpoints.trx_result AS (
-    "id" BIGINT,
+    "id" INT,
     "op_pos" INT,
-    "subsequent_no" BIGINT,
+    "subsequent_no" INT,
     "action" TEXT,
     "symbol" TEXT,
     "account" TEXT,

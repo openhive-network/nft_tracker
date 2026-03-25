@@ -68,9 +68,9 @@ DROP FUNCTION IF EXISTS nfttracker_endpoints.get_trx_results;
 CREATE OR REPLACE FUNCTION nfttracker_endpoints.get_trx_results(
     "trx_id" TEXT,
     "count" INT = NULL,
-    "last_id" BIGINT = NULL
+    "last_id" INT = NULL
 )
-RETURNS nfttracker_endpoints.trx_result[]
+RETURNS nfttracker_endpoints.trx_result[] 
 -- openapi-generated-code-end
 LANGUAGE 'plpgsql' STABLE
 AS

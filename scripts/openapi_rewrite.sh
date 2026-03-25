@@ -27,12 +27,14 @@ ENDPOINTS_IN_ORDER="
 ../$endpoints/types/nft_type.sql
 ../$endpoints/types/nft_instance.sql
 ../$endpoints/types/nft_instance_with_type.sql
+../$endpoints/types/trx_result.sql
 ../$endpoints/endpoint_schema.sql
 ../$endpoints/get_version.sql
 ../$endpoints/get_nft_types.sql
 ../$endpoints/get_nft_instances.sql
 ../$endpoints/get_nft_instances_with_tags.sql
-../$endpoints/get_nft_instances_by_trx.sql"
+../$endpoints/get_nft_instances_by_trx.sql
+../$endpoints/get_trx_results.sql"
 
 # Function to reverse the lines for nginx rewrite rules
 reverse_lines() {
