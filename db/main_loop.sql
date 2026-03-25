@@ -33,6 +33,31 @@ BEGIN
 END
 $$;
 
+CREATE OR REPLACE FUNCTION nfttracker_app.record_operation_result(
+    IN _operation_id BIGINT,
+    IN _block_num INT,
+    IN _subsequent_no BIGINT,
+    IN _action TEXT,
+    IN _symbol TEXT,
+    IN _account hafd.account_name_type,
+    IN _success BOOLEAN,
+    IN _error_message TEXT
+)
+RETURNS VOID
+LANGUAGE 'plpgsql' VOLATILE
+AS
+$$
+BEGIN
+  INSERT INTO nfttracker_app.operation_results
+    (operation_id, op_pos, subsequent_no, action, symbol, account, success, error_message, created_at)
+  SELECT _operation_id, o.op_pos, _subsequent_no, _action,
+         _symbol, _account, _success, _error_message, b.created_at
+  FROM hive.blocks_view AS b
+  JOIN hafd.operations o ON o.id = _operation_id
+  WHERE b.num = _block_num;
+END
+$$;
+
 CREATE OR REPLACE FUNCTION nfttracker_app.process_action(
     IN _block_num INT,
     IN _active_auth hafd.account_name_type,
@@ -73,13 +98,9 @@ BEGIN
           WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _active_auth, _json)
         END;
 
-    INSERT INTO nfttracker_app.operation_results
-      (operation_id, op_pos, subsequent_no, action, symbol, account, success, error_message, created_at)
-    SELECT _operation_id, o.op_pos, _subsequent_no, _action,
-           _json->>'symbol', _active_auth, TRUE, NULL, b.created_at
-    FROM hive.blocks_view AS b
-    JOIN hafd.operations o ON o.id = _operation_id
-    WHERE b.num = _block_num;
+    PERFORM nfttracker_app.record_operation_result(
+      _operation_id, _block_num, _subsequent_no, _action,
+      _json->>'symbol', _active_auth, TRUE, NULL);
 
   EXCEPTION
     WHEN OTHERS THEN
@@ -89,13 +110,9 @@ BEGIN
       RAISE WARNING 'Error processing action % in block %: %', _action, _block_num, err_msg
         USING DETAIL = err_detail, HINT = err_hint;
 
-      INSERT INTO nfttracker_app.operation_results
-        (operation_id, op_pos, subsequent_no, action, symbol, account, success, error_message, created_at)
-      SELECT _operation_id, o.op_pos, _subsequent_no, _action,
-             _json->>'symbol', _active_auth, FALSE, err_msg, b.created_at
-      FROM hive.blocks_view AS b
-      JOIN hafd.operations o ON o.id = _operation_id
-      WHERE b.num = _block_num;
+      PERFORM nfttracker_app.record_operation_result(
+        _operation_id, _block_num, _subsequent_no, _action,
+        _json->>'symbol', _active_auth, FALSE, err_msg);
   END;
 END
 $$;
