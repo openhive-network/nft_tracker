@@ -69,8 +69,8 @@ BEGIN
         END;
 
     INSERT INTO nfttracker_app.operation_results
-      (operation_id, op_pos, subsequent_no, block_num, action, symbol, account, success, error_message, created_at)
-    SELECT _operation_id, o.op_pos, _subsequent_no, _block_num, _action,
+      (operation_id, op_pos, subsequent_no, action, symbol, account, success, error_message, created_at)
+    SELECT _operation_id, o.op_pos, _subsequent_no, _action,
            _json->>'symbol', _active_auth, TRUE, NULL, b.created_at
     FROM hive.blocks_view AS b
     JOIN hafd.operations o ON o.id = _operation_id
@@ -85,9 +85,9 @@ BEGIN
         USING DETAIL = err_detail, HINT = err_hint;
 
       INSERT INTO nfttracker_app.operation_results
-        (operation_id, op_pos, subsequent_no, block_num, action, symbol, account, success, error_message, created_at)
-      SELECT _operation_id, o.op_pos, _subsequent_no, _block_num, _action,
-             _json->>'symbol', _active_auth, FALSE, err_msg, b.created_at
+        (operation_id, op_pos, subsequent_no, action, symbol, account, success, error_message, created_at)
+      SELECT _operation_id, o.op_pos, _subsequent_no, COALESCE(_action, ''),
+             COALESCE(_json->>'symbol', ''), _active_auth, FALSE, err_msg, b.created_at
       FROM hive.blocks_view AS b
       JOIN hafd.operations o ON o.id = _operation_id
       WHERE b.num = _block_num;
