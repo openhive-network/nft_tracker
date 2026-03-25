@@ -35,7 +35,7 @@ BEGIN
     WHERE tx.trx_hash = decode(p_trx_id, 'hex')
       AND (p_last_id IS NULL OR r.id > p_last_id)
     ORDER BY r.id
-    LIMIT LEAST(p_count, 1000)
+    LIMIT LEAST(COALESCE(p_count, 1000), 1000)
   ), ARRAY[]::nfttracker_endpoints.trx_result[]);
 END
 $$;
