@@ -5,6 +5,9 @@ nfttracker_endpoints.trx_result:
     id:
       type: integer
       description: unique result ID
+    op_pos:
+      type: integer
+      description: position of the operation within the block
     subsequent_no:
       type: integer
       description: 0-based position of this action within the transaction's
@@ -33,6 +36,7 @@ nfttracker_endpoints.trx_result:
 DROP TYPE IF EXISTS nfttracker_endpoints.trx_result CASCADE;
 CREATE TYPE nfttracker_endpoints.trx_result AS (
     "id" BIGINT,
+    "op_pos" INT,
     "subsequent_no" BIGINT,
     "action" TEXT,
     "symbol" TEXT,
