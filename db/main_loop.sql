@@ -46,17 +46,19 @@ AS
 $$
 DECLARE
   _symbol nfttracker_app.symbol;
+  _action TEXT;
   err_msg TEXT;
   err_detail TEXT;
   err_hint TEXT;
 BEGIN
+  _action := _json->>'action';
   BEGIN
     IF _json->>'symbol' IS NULL THEN
       RAISE EXCEPTION 'Symbol is not specified';
     END IF;
     RETURN QUERY
       SELECT
-        CASE _json->>'action'
+        CASE _action
           WHEN 'register' THEN nfttracker_app.register(_block_num, _active_auth, _json)
           WHEN 'modify' THEN nfttracker_app.modify(_block_num, _active_auth, _json)
           WHEN 'issue' THEN nfttracker_app.issue(_block_num, _active_auth, _json, _operation_id, _subsequent_no)
@@ -65,13 +67,26 @@ BEGIN
           WHEN 'update_tags' THEN nfttracker_app.update_tags(_block_num, _active_auth, _json)
           WHEN 'transfer' THEN nfttracker_app.transfer(_block_num, _active_auth, _json)
         END;
+
+    INSERT INTO nfttracker_app.operation_results
+      (operation_id, subsequent_no, block_num, action, symbol, account, success, error_message, created_at)
+    SELECT _operation_id, _subsequent_no, _block_num, _action,
+           _json->>'symbol', _active_auth, TRUE, NULL, b.created_at
+    FROM hive.blocks_view AS b WHERE b.num = _block_num;
+
   EXCEPTION
     WHEN OTHERS THEN
       GET STACKED DIAGNOSTICS err_msg = MESSAGE_TEXT,
         err_detail = PG_EXCEPTION_DETAIL,
         err_hint = PG_EXCEPTION_HINT;
-      RAISE WARNING 'Error processing action % in block %: %', _json->>'action', _block_num, err_msg
+      RAISE WARNING 'Error processing action % in block %: %', _action, _block_num, err_msg
         USING DETAIL = err_detail, HINT = err_hint;
+
+      INSERT INTO nfttracker_app.operation_results
+        (operation_id, subsequent_no, block_num, action, symbol, account, success, error_message, created_at)
+      SELECT _operation_id, _subsequent_no, _block_num, _action,
+             _json->>'symbol', _active_auth, FALSE, err_msg, b.created_at
+      FROM hive.blocks_view AS b WHERE b.num = _block_num;
   END;
 END
 $$;

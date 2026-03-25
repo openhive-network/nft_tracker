@@ -235,6 +235,21 @@ CREATE INDEX IF NOT EXISTS idx_nfts_instances_holder ON nfttracker_app.instances
 CREATE INDEX IF NOT EXISTS idx_nfts_instances_tags_gin ON nfttracker_app.instances USING GIN (tags);
 CREATE INDEX IF NOT EXISTS idx_nfts_instances_operation_id ON nfttracker_app.instances(operation_id);
 
+CREATE TABLE IF NOT EXISTS nfttracker_app.operation_results (
+    id BIGSERIAL PRIMARY KEY,
+    operation_id BIGINT NOT NULL,
+    subsequent_no BIGINT NOT NULL DEFAULT 0,
+    block_num INT NOT NULL,
+    action TEXT,
+    symbol TEXT,
+    account TEXT NOT NULL,
+    success BOOLEAN NOT NULL,
+    error_message TEXT,
+    created_at TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_operation_results_operation_id
+    ON nfttracker_app.operation_results(operation_id);
+
 CREATE OR REPLACE FUNCTION nfttracker_app.prevent_soulbound_unset()
 RETURNS TRIGGER AS $$
 BEGIN
