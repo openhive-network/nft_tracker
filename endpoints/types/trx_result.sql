@@ -10,7 +10,7 @@ nfttracker_endpoints.trx_result:
       description: position of the operation within the block
     subsequent_no:
       type: integer
-      description: 0-based position of this action within the transaction's
+      description: 0-based position of this action within the transaction''s
         action array
     action:
       type: string
