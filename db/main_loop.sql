@@ -52,10 +52,15 @@ DECLARE
   err_hint TEXT;
 BEGIN
   _action := _json->>'action';
+  IF _action IS NULL THEN
+    RAISE WARNING 'Error processing operation in block %: Action is not specified', _block_num;
+    RETURN;
+  END IF;
+  IF _json->>'symbol' IS NULL THEN
+    RAISE WARNING 'Error processing action % in block %: Symbol is not specified', _action, _block_num;
+    RETURN;
+  END IF;
   BEGIN
-    IF _json->>'symbol' IS NULL THEN
-      RAISE EXCEPTION 'Symbol is not specified';
-    END IF;
     RETURN QUERY
       SELECT
         CASE _action
@@ -86,8 +91,8 @@ BEGIN
 
       INSERT INTO nfttracker_app.operation_results
         (operation_id, op_pos, subsequent_no, action, symbol, account, success, error_message, created_at)
-      SELECT _operation_id, o.op_pos, _subsequent_no, COALESCE(_action, ''),
-             COALESCE(_json->>'symbol', ''), _active_auth, FALSE, err_msg, b.created_at
+      SELECT _operation_id, o.op_pos, _subsequent_no, _action,
+             _json->>'symbol', _active_auth, FALSE, err_msg, b.created_at
       FROM hive.blocks_view AS b
       JOIN hafd.operations o ON o.id = _operation_id
       WHERE b.num = _block_num;
