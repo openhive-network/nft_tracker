@@ -188,7 +188,7 @@ DO $__$
           },
           "subsequent_no": {
             "type": "integer",
-            "description": "0-based position of this action within the transaction's action array"
+            "description": "0-based position of this action within the transaction''s action array"
           },
           "action": {
             "type": "string",
