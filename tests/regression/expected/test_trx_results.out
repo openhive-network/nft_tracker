@@ -1,0 +1,103 @@
+-- Check that transaction results are recorded and queryable
+-- Given: Insert transactions for blocks 1 and 2
+CALL insert_transaction(block_num=>1, trx_in_block=>0::SMALLINT, trx_hash=>decode('aaaa' || repeat('00', 18), 'hex'));
+CALL insert_transaction(block_num=>2, trx_in_block=>0::SMALLINT, trx_hash=>decode('bbbb' || repeat('00', 18), 'hex'));
+CALL insert_transaction(block_num=>3, trx_in_block=>0::SMALLINT, trx_hash=>decode('cccc' || repeat('00', 18), 'hex'));
+CALL insert_transaction(block_num=>4, trx_in_block=>0::SMALLINT, trx_hash=>decode('dddd' || repeat('00', 18), 'hex'));
+-- Given: Register a type (success) + duplicate register (failure) in trx A (block 1)
+CALL insert_nft_register_op(block_num=>1, pos=>0, auth=>'alice', symbol=>'alice/CARD', name=>'Card', owner=>'alice', issuers=>ARRAY['alice']);
+CALL insert_nft_register_op(block_num=>1, pos=>1, auth=>'alice', symbol=>'alice/CARD', name=>'Card2', owner=>'alice', issuers=>ARRAY['alice']);
+-- Given: Issue an instance in trx B (block 2, success)
+CALL insert_nft_issue_op(block_num=>2, auth=>'alice', symbol=>'alice/CARD', holder=>'bob', data=>'{"n":1}', tags=>ARRAY['t1']::nfttracker_app.tags, soulbound=>FALSE);
+-- Given: Failed transfer in trx C (block 3, charlie is not the holder)
+CALL insert_nft_transfer_op(block_num=>3, auth=>'charlie', symbol=>'alice/CARD',
+    ids=>ARRAY[expected_instance_id(2, 0, 1)]::NUMERIC[],
+    to_account=>'charlie');
+-- Given: Successful transfer in trx D (block 4, bob is the holder)
+CALL insert_nft_transfer_op(block_num=>4, auth=>'bob', symbol=>'alice/CARD',
+    ids=>ARRAY[expected_instance_id(2, 0, 1)]::NUMERIC[],
+    to_account=>'charlie');
+-- When
+CALL nfttracker_sync_blocks();
+NOTICE:  Registering index dependency hive_operations_custom_json_types_1_idx for custom_json types: {NFT} (IDs: {1})
+NOTICE:  Last block processed by application: 0
+NOTICE:  Entering application main loop...
+NOTICE:  HAF instance is ready. Exiting wait loop.
+WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
+WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'live' block: 1 fork: 1 head block: 9 head fork: 1
+NOTICE:  nfttracker processing block: 1...
+WARNING:  Error processing action register in block 1: NFT type alice/CARD already exists
+NOTICE:  nfttracker processed block 1 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 2...
+NOTICE:  nfttracker processed block 2 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 3...
+WARNING:  Error processing action transfer in block 3: Account charlie is disallowed to transfer NFTs alice/CARD:{158456325028958171963932540928}
+NOTICE:  nfttracker processed block 3 successfully in _ s
+    
+NOTICE:  nfttracker processing block: 4...
+NOTICE:  nfttracker processed block 4 successfully in _ s
+    
+NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 4.
+-- Then: Trx A has 2 results (1 success + 1 failure with error message)
+SELECT action, symbol, account, success, error_message
+FROM unnest(nfttracker_endpoints.get_trx_results('aaaa' || repeat('00', 18)));
+  action  |   symbol   | account | success |           error_message            
+----------+------------+---------+---------+------------------------------------
+ register | alice/CARD | alice   | t       | (null)
+ register | alice/CARD | alice   | f       | NFT type alice/CARD already exists
+(2 rows)
+
+-- Then: Trx B has 1 success result
+SELECT action, symbol, account, success, error_message
+FROM unnest(nfttracker_endpoints.get_trx_results('bbbb' || repeat('00', 18)));
+ action |   symbol   | account | success | error_message 
+--------+------------+---------+---------+---------------
+ issue  | alice/CARD | alice   | t       | (null)
+(1 row)
+
+-- Then: Trx C has 1 failure result
+SELECT action, symbol, account, success, error_message
+FROM unnest(nfttracker_endpoints.get_trx_results('cccc' || repeat('00', 18)));
+  action  |   symbol   | account | success |                                       error_message                                        
+----------+------------+---------+---------+--------------------------------------------------------------------------------------------
+ transfer | alice/CARD | charlie | f       | Account charlie is disallowed to transfer NFTs alice/CARD:{158456325028958171963932540928}
+(1 row)
+
+-- Then: Trx D has 1 success result (transfer)
+SELECT action, symbol, account, success, error_message
+FROM unnest(nfttracker_endpoints.get_trx_results('dddd' || repeat('00', 18)));
+  action  |   symbol   | account | success | error_message 
+----------+------------+---------+---------+---------------
+ transfer | alice/CARD | bob     | t       | (null)
+(1 row)
+
+-- Then: Nonexistent trx returns empty
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_trx_results(repeat('ff', 20)));
+ count 
+-------
+     0
+(1 row)
+
+-- Then: Pagination - count=1 returns first of 2
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_trx_results('aaaa' || repeat('00', 18), 1));
+ count 
+-------
+     1
+(1 row)
+
+-- Then: Pagination - last_id skips first result
+SELECT count(*) FROM unnest(nfttracker_endpoints.get_trx_results('aaaa' || repeat('00', 18), NULL,
+    (SELECT MIN(id) FROM unnest(nfttracker_endpoints.get_trx_results('aaaa' || repeat('00', 18))))));
+ count 
+-------
+     1
+(1 row)
+
+-- Then: Invalid hex -> error
+SELECT * FROM unnest(nfttracker_endpoints.get_trx_results('not_valid_hex'));
+ERROR:  Invalid transaction hash: expected 40 hex characters, got: not_valid_hex
+-- Then: Empty string -> error
+SELECT * FROM unnest(nfttracker_endpoints.get_trx_results(''));
+ERROR:  Invalid transaction hash: expected 40 hex characters, got: 

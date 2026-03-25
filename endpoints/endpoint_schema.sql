@@ -129,6 +129,40 @@ DO $__$
           }
         }
       },
+      "nfttracker_endpoints.trx_result": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "unique result ID"
+          },
+          "action": {
+            "type": "string",
+            "description": "NFT action type (register, issue, transfer, etc.)"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "NFT symbol targeted by the operation (e.g. alice/CARD)"
+          },
+          "account": {
+            "type": "string",
+            "description": "account that submitted the operation"
+          },
+          "success": {
+            "type": "boolean",
+            "description": "whether the operation succeeded"
+          },
+          "error_message": {
+            "type": "string",
+            "description": "error message if the operation failed, null on success"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "block timestamp when the operation was processed"
+          }
+        }
+      },
       "nfttracker_endpoints.nft_instance_with_type": {
         "type": "object",
         "properties": {
@@ -485,6 +519,73 @@ DO $__$
           },
           "404": {
             "description": "creator/symbol combination does not exist\n"
+          }
+        }
+      }
+    },
+    "/trx/{trx_id}/results": {
+      "get": {
+        "tags": [
+          "NFT"
+        ],
+        "summary": "Transaction results",
+        "description": "Returns the results of NFT operations in a given transaction, including both successes and failures with error messages.\n\nSQL example\n* `SELECT * FROM nfttracker_endpoints.get_trx_results(''abc123...'');`\n\nREST call example\n* `GET ''https://%1$s/nft-tracker-api/trx/abc123.../results''`\n",
+        "operationId": "nfttracker_endpoints.get_trx_results",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "trx_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "hex-encoded transaction hash (40 characters)"
+          },
+          {
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Maximum number of results to return. The value is capped at 1000, which is also the default.\n"
+          },
+          {
+            "in": "query",
+            "name": "last_id",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": null
+            },
+            "description": "Return results with IDs greater than this value.\n"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation results for the given transaction\n\n* Returns `nfttracker_endpoints.trx_result`\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/nfttracker_endpoints.trx_result"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "action": "register",
+                    "symbol": "alice/CARD",
+                    "account": "alice",
+                    "success": true,
+                    "error_message": null,
+                    "created_at": "2025-08-22T12:00:00"
+                  }
+                ]
+              }
+            }
           }
         }
       }
