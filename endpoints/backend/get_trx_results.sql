@@ -3,7 +3,7 @@ SET ROLE nfttracker_owner;
 DROP FUNCTION IF EXISTS nfttracker_backend.get_trx_results;
 CREATE OR REPLACE FUNCTION nfttracker_backend.get_trx_results(
     "p_trx_id" TEXT,
-    "p_count" INTEGER DEFAULT NULL,
+    "p_count" INTEGER DEFAULT 1000,
     "p_last_id" BIGINT DEFAULT NULL
 )
 RETURNS nfttracker_endpoints.trx_result[]
