@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS nfttracker_app.operation_results (
     subsequent_no BIGINT NOT NULL DEFAULT 0,
     action TEXT NOT NULL,
     symbol TEXT NOT NULL,
-    account hafd.account_name_type NOT NULL,
+    account hafd.account_name_type,
     success BOOLEAN NOT NULL,
     error_message TEXT,
     created_at TIMESTAMP NOT NULL

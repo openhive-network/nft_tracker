@@ -110,9 +110,14 @@ BEGIN
       RAISE WARNING 'Error processing action % in block %: %', _action, _block_num, err_msg
         USING DETAIL = err_detail, HINT = err_hint;
 
-      PERFORM nfttracker_app.record_operation_result(
-        _operation_id, _block_num, _subsequent_no, _action,
-        _json->>'symbol', _active_auth, FALSE, err_msg);
+      BEGIN
+        PERFORM nfttracker_app.record_operation_result(
+          _operation_id, _block_num, _subsequent_no, _action,
+          _json->>'symbol', _active_auth, FALSE, err_msg);
+      EXCEPTION
+        WHEN OTHERS THEN
+          RAISE WARNING 'Failed to record operation result for block %: %', _block_num, SQLERRM;
+      END;
   END;
 END
 $$;

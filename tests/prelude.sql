@@ -190,6 +190,21 @@ BEGIN
 END;
 $$;
 
+-- Insert an NFT operation using required_posting_auths instead of required_auths.
+-- This simulates malformed on-chain operations that lack active authority.
+CREATE OR REPLACE PROCEDURE insert_nft_operation_posting_auth(block_num INT, pos INT, auth hafd.account_name_type, data jsonb, trx_in_block SMALLINT DEFAULT 0)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO hafd.operations (id, trx_in_block, op_type_id, op_pos, body_value, custom_json_type_id)
+    VALUES (hafd.operation_id(block_num, pos), trx_in_block,
+            nfttracker_backend.op_custom_json(), pos,
+            format('{"id":"NFT", "json":%s, "required_auths":[], "required_posting_auths":[%s]}'::text,
+                   to_jsonb(data::text)::text, to_jsonb(auth)::text)::jsonb,
+            nfttracker_backend.custom_json_nft_type_id());
+END;
+$$;
+
 CREATE OR REPLACE PROCEDURE insert_nft_ops(block_num INT, auth hafd.account_name_type, ops TEXT[], pos INT DEFAULT 0)
 LANGUAGE plpgsql
 AS $$
