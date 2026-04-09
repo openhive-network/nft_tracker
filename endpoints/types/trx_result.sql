@@ -20,7 +20,9 @@ nfttracker_endpoints.trx_result:
       description: NFT symbol targeted by the operation (e.g. alice/CARD)
     account:
       type: string
-      description: account that submitted the operation
+      nullable: true
+      description: account that submitted the operation, null for malformed
+        operations lacking active authority
     success:
       type: boolean
       description: whether the operation succeeded
