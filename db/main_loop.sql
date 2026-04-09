@@ -89,6 +89,13 @@ BEGIN
     RAISE WARNING 'Error processing action % in block %: Symbol is not specified', _action, _block_num;
     RETURN;
   END IF;
+  IF _active_auth IS NULL THEN
+    RAISE WARNING 'Error processing action % in block %: Active authority is required', _action, _block_num;
+    PERFORM nfttracker_app.record_operation_result(
+      _operation_id, _block_num, _subsequent_no, _action,
+      _json->>'symbol', NULL, FALSE, 'Active authority is required');
+    RETURN;
+  END IF;
   BEGIN
     RETURN QUERY
       SELECT

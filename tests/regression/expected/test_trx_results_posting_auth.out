@@ -1,5 +1,5 @@
--- Check that operations using only posting auth (no active auth) are recorded
--- as failures with NULL account, rather than crashing the block processor.
+-- Check that operations using only posting auth (no active auth) are rejected
+-- and recorded as failures rather than crashing the block processor.
 -- Given: A valid register, then a register using posting auth only
 CALL insert_transaction(block_num=>1, trx_in_block=>0::SMALLINT, trx_hash=>decode('aaaa' || repeat('00', 18), 'hex'));
 CALL insert_nft_register_op(block_num=>1, pos=>0, auth=>'alice', symbol=>'alice/CARD', name=>'Card', owner=>'alice', issuers=>ARRAY['alice']);
@@ -13,15 +13,22 @@ NOTICE:  HAF instance is ready. Exiting wait loop.
 WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
 WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'live' block: 1 fork: 1 head block: 9 head fork: 1
 NOTICE:  nfttracker processing block: 1...
-WARNING:  Error processing action register in block 1: null value in column "holder" of relation "types" violates not-null constraint
+WARNING:  Error processing action register in block 1: Active authority is required
 NOTICE:  nfttracker processed block 1 successfully in _ s
-
+    
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 1.
--- Then: Both operations are recorded; the posting-auth one fails with NULL account
+-- Then: Both operations are recorded; the posting-auth one is a failure
 SELECT action, symbol, account, success, error_message IS NOT NULL AS has_error FROM nfttracker_app.operation_results ORDER BY id;
-  action  |   symbol   | account | success | has_error
+  action  |   symbol   | account | success | has_error 
 ----------+------------+---------+---------+-----------
  register | alice/CARD | alice   | t       | f
  register | bob/BAD    | (null)  | f       | t
 (2 rows)
+
+-- And only alice/CARD is registered; bob/BAD is not
+SELECT creator, symbol, name FROM types_view;
+ creator | symbol | name 
+---------+--------+------
+ alice   | CARD   | Card
+(1 row)
 
