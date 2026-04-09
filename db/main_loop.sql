@@ -116,7 +116,8 @@ BEGIN
           _json->>'symbol', _active_auth, FALSE, err_msg);
       EXCEPTION
         WHEN OTHERS THEN
-          RAISE WARNING 'Failed to record operation result for block %: %', _block_num, SQLERRM;
+          RAISE WARNING 'Failed to record operation result for block % (op=%, action=%, symbol=%): %',
+            _block_num, _operation_id, _action, _json->>'symbol', SQLERRM;
       END;
   END;
 END
