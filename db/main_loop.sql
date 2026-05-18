@@ -306,6 +306,7 @@ AS
 $$
 DECLARE
   _blocks_range hive.blocks_range := (0,0);
+  _was_idle BOOLEAN := FALSE;
 BEGIN
   IF _maxBlockLimit != NULL THEN
     RAISE NOTICE 'Max block limit is specified as: %', _maxBlockLimit;
@@ -334,10 +335,14 @@ BEGIN
     END IF;
 
     IF _blocks_range IS NULL THEN
-      RAISE WARNING 'Waiting for next block...';
+      IF NOT _was_idle THEN
+        RAISE NOTICE 'Waiting for next block...';
+        _was_idle := TRUE;
+      END IF;
       CONTINUE;
     END IF;
 
+    _was_idle := FALSE;
     PERFORM nfttracker_app.process_blocks(_appContext, _blocks_range);
   END LOOP;
 
