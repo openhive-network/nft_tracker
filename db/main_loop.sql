@@ -306,7 +306,9 @@ AS
 $$
 DECLARE
   _blocks_range hive.blocks_range := (0,0);
-  _was_idle BOOLEAN := FALSE;
+  _idle_since TIMESTAMPTZ;
+  _stall_logged BOOLEAN := FALSE;
+  _stall_threshold CONSTANT INTERVAL := INTERVAL '10 seconds';
 BEGIN
   -- Block until any active nft_tracker installer releases its exclusive
   -- lock; held by this session until main() returns.
@@ -339,14 +341,18 @@ BEGIN
     END IF;
 
     IF _blocks_range IS NULL THEN
-      IF NOT _was_idle THEN
-        RAISE NOTICE 'Waiting for next block...';
-        _was_idle := TRUE;
+      IF _idle_since IS NULL THEN
+        _idle_since := clock_timestamp();
+      ELSIF NOT _stall_logged AND clock_timestamp() - _idle_since > _stall_threshold THEN
+        RAISE NOTICE 'No new block from HAF in % seconds...',
+          extract(epoch FROM clock_timestamp() - _idle_since)::INT;
+        _stall_logged := TRUE;
       END IF;
       CONTINUE;
     END IF;
 
-    _was_idle := FALSE;
+    _idle_since := NULL;
+    _stall_logged := FALSE;
     PERFORM nfttracker_app.process_blocks(_appContext, _blocks_range);
   END LOOP;
 
