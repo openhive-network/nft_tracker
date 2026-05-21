@@ -2,6 +2,30 @@
 
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit 1; pwd -P )"
 
+# Re-exec under the install-lock wrapper if not already running under it.
+# Holds an exclusive advisory lock on 'nft_tracker' for the lifetime of this
+# script; if a block-processor is holding the shared lock the wrapper logs the
+# holder and exits 0 without running the install. POSIX sh has no arrays, so we
+# re-exec before the arg-parse loop (while "$@" is intact) and do a minimal
+# scan just to build the DSN the wrapper needs.
+if [ -z "${HAF_INSTALL_LOCK_HELD:-}" ]; then
+  _pg_user="${POSTGRES_USER:-haf_admin}"
+  _pg_host="${POSTGRES_HOST:-localhost}"
+  _pg_port="${POSTGRES_PORT:-5432}"
+  _pg_url="${POSTGRES_URL:-}"
+  for _arg in "$@"; do
+    case "$_arg" in
+      --postgres-host=*) _pg_host="${_arg#*=}" ;;
+      --postgres-port=*) _pg_port="${_arg#*=}" ;;
+      --postgres-user=*) _pg_user="${_arg#*=}" ;;
+      --postgres-url=*)  _pg_url="${_arg#*=}" ;;
+    esac
+  done
+  _dsn="${_pg_url:-postgresql://$_pg_user@$_pg_host:$_pg_port/haf_block_log}"
+  export HAF_INSTALL_LOCK_HELD=1
+  exec python3 /usr/local/bin/install_with_app_lock.py nft_tracker "$_dsn" "$0" "$@"
+fi
+
 print_help () {
     cat <<EOF
 Usage: $0 [OPTION[=VALUE]]...
