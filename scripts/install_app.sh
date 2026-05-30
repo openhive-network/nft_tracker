@@ -13,24 +13,27 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit 1; pwd -P )"
 # a correctness requirement for isolated test runs.
 # POSIX sh has no arrays, so the re-exec happens before the arg-parse loop
 # (while "$@" is intact) with a minimal scan just to build the DSN.
-if [ -z "${HAF_INSTALL_LOCK_HELD:-}" ] \
-    && command -v python3 >/dev/null 2>&1 \
-    && [ -f /usr/local/bin/install_with_app_lock.py ]; then
-  _pg_user="${POSTGRES_USER:-haf_admin}"
-  _pg_host="${POSTGRES_HOST:-localhost}"
-  _pg_port="${POSTGRES_PORT:-5432}"
-  _pg_url="${POSTGRES_URL:-}"
-  for _arg in "$@"; do
-    case "$_arg" in
-      --postgres-host=*) _pg_host="${_arg#*=}" ;;
-      --postgres-port=*) _pg_port="${_arg#*=}" ;;
-      --postgres-user=*) _pg_user="${_arg#*=}" ;;
-      --postgres-url=*)  _pg_url="${_arg#*=}" ;;
-    esac
-  done
-  _dsn="${_pg_url:-postgresql://$_pg_user@$_pg_host:$_pg_port/haf_block_log}"
-  export HAF_INSTALL_LOCK_HELD=1
-  exec python3 /usr/local/bin/install_with_app_lock.py nft_tracker "$_dsn" "$0" "$@"
+if [ -z "${HAF_INSTALL_LOCK_HELD:-}" ]; then
+  if command -v python3 >/dev/null 2>&1 && [ -f /usr/local/bin/install_with_app_lock.py ]; then
+    _pg_user="${POSTGRES_USER:-haf_admin}"
+    _pg_host="${POSTGRES_HOST:-localhost}"
+    _pg_port="${POSTGRES_PORT:-5432}"
+    _pg_url="${POSTGRES_URL:-}"
+    for _arg in "$@"; do
+      case "$_arg" in
+        --postgres-host=*) _pg_host="${_arg#*=}" ;;
+        --postgres-port=*) _pg_port="${_arg#*=}" ;;
+        --postgres-user=*) _pg_user="${_arg#*=}" ;;
+        --postgres-url=*)  _pg_url="${_arg#*=}" ;;
+      esac
+    done
+    _dsn="${_pg_url:-postgresql://$_pg_user@$_pg_host:$_pg_port/haf_block_log}"
+    export HAF_INSTALL_LOCK_HELD=1
+    exec python3 /usr/local/bin/install_with_app_lock.py nft_tracker "$_dsn" "$0" "$@"
+  else
+    echo "WARNING: install_with_app_lock.py wrapper not found; running install without HAF advisory lock (expected in CI test setups, not in production install images)." >&2
+    export HAF_INSTALL_LOCK_HELD=1
+  fi
 fi
 
 print_help () {
