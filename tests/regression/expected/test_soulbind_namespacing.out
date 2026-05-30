@@ -12,7 +12,6 @@ CALL nfttracker_sync_blocks();
 NOTICE:  Registering index dependency hive_operations_custom_json_types_1_idx for custom_json types: {NFT} (IDs: {1})
 NOTICE:  Last block processed by application: 0
 NOTICE:  Entering application main loop...
-NOTICE:  HAF instance is ready. Exiting wait loop.
 WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
 WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'live' block: 1 fork: 1 head block: 9 head fork: 1
 NOTICE:  nfttracker processing block: 1...
