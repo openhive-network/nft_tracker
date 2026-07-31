@@ -1,0 +1,21 @@
+test_name: "test_sync_status"
+
+includes:
+  - !include tavern_global_config.yaml
+
+marks:
+  - sync_status
+
+stages:
+  - name: "Get sync status"
+    request:
+      url: "{base_url}/rpc/get_sync_status"
+      method: POST
+      headers:
+        content-type: application/json
+        accept: application/json
+    response:
+      status_code: 200
+      json:
+        last_block_num: 12
+        last_block_time: "2016-06-22T19:10:48"

@@ -30,6 +30,7 @@ ENDPOINTS_IN_ORDER="
 ../$endpoints/types/trx_result.sql
 ../$endpoints/endpoint_schema.sql
 ../$endpoints/get_version.sql
+../$endpoints/get_sync_status.sql
 ../$endpoints/get_nft_types.sql
 ../$endpoints/get_nft_instances.sql
 ../$endpoints/get_nft_instances_with_tags.sql
