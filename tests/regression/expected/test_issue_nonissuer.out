@@ -11,15 +11,9 @@ NOTICE:  Last block processed by application: 0
 NOTICE:  Entering application main loop...
 WARNING:  PROFILE: 'nfttracker_app' STAGE_CHANGED from 'N/A' to 'live' after N/A block: 1 fork: 1 head block: 9 head fork: 1
 WARNING:  PROFILE: 'nfttracker_app' ATTACHED stage: 'live' block: 1 fork: 1 head block: 9 head fork: 1
-NOTICE:  nfttracker processing block: 1...
-NOTICE:  nfttracker processed block 1 successfully in _ s
-    
-NOTICE:  nfttracker processing block: 2...
 WARNING:  Error processing action issue in block 2: Account alice is disallowed to issue NFTs alice/ABC
 WARNING:  Error processing action issue in block 2: Account bob is disallowed to issue NFTs alice/ABC
 WARNING:  Error processing action issue in block 2: Account charlie is disallowed to issue NFTs alice/ABC
-NOTICE:  nfttracker processed block 2 successfully in _ s
-    
 NOTICE:  Blocks limit reached. Exiting application main loop at processed block: 2.
 -- Then
 SELECT COUNT(*) FROM instances_view;
