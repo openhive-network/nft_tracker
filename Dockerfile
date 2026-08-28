@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.5
-ARG PSQL_CLIENT_VERSION=3f9ddace955ad0c45a8364fc4ebf880376999262
+ARG PSQL_CLIENT_VERSION=da9ffb6003edfb5cbaf1dfcde8e1847667af7d24
 FROM registry.gitlab.syncad.com/hive/common-ci-configuration/psql:${PSQL_CLIENT_VERSION} AS psql
 
 FROM psql AS version-injection
