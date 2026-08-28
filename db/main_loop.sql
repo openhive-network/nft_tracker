@@ -233,7 +233,7 @@ BEGIN
   PERFORM set_config('synchronous_commit', 'ON', false);
 
   IF _logs THEN
-    RAISE NOTICE 'nfttracker processing block: %...', _from;
+    RAISE DEBUG 'nfttracker processing block: %...', _from;
     __start_ts := clock_timestamp();
   END IF;
 
@@ -241,7 +241,7 @@ BEGIN
 
   IF _logs THEN
     __end_ts := clock_timestamp();
-    RAISE NOTICE 'nfttracker processed block % successfully in % s
+    RAISE DEBUG 'nfttracker processed block % successfully in % s
     ', _from, (extract(epoch FROM __end_ts - __start_ts));
   END IF;
 END
