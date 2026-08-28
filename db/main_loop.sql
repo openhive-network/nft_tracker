@@ -356,4 +356,34 @@ BEGIN
 END
 $$;
 
+
+/**
+ * process_blocks( hive.blocks_range )
+ * -----------------------------------
+ * Entry point for the generic HAF block-processing driver (haf_app_driver.py,
+ * haf#341): processes one range delivered by hive.app_next_iteration. The driver
+ * owns the transaction, so this must not COMMIT.
+ *
+ * main() registered the NFT custom_json index once at startup; do the same once
+ * per driver session (a session-level flag - a reconnect, like a main() restart,
+ * repeats it), as hive.register_custom_json_type_index re-registers on every call.
+ */
+CREATE OR REPLACE PROCEDURE nfttracker_app.process_blocks( _block_range hive.blocks_range )
+LANGUAGE 'plpgsql'
+AS
+$$
+BEGIN
+  IF current_setting( 'nfttracker.index_registered', true ) IS DISTINCT FROM '1' THEN
+    PERFORM nfttracker_app.register_nft_index();
+    PERFORM set_config( 'nfttracker.index_registered', '1', false );
+  END IF;
+
+  PERFORM nfttracker_app.process_blocks( 'nfttracker_app', _block_range );
+END
+$$;
+
+-- Register with the HAF application registry so a generic driver can run this
+-- application and other applications can declare dependencies on it.
+SELECT hive.app_register( 'nfttracker_app', ARRAY[ 'nfttracker_app' ]::hive.contexts_group, 'nfttracker_app.process_blocks' );
+
 RESET ROLE;
