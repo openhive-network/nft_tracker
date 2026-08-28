@@ -68,6 +68,18 @@ POSTGRES_ACCESS=${POSTGRES_URL:-"postgresql://$POSTGRES_USER@$POSTGRES_HOST:$POS
 process_blocks() {
     local n_blocks="${1:-null}"
     log_file="nfttracker_sync.log"
+
+    # The generic HAF block-processing driver (haf#341) runs the registered
+    # ${NFTTRACKER_SCHEMA}.process_blocks procedure per delivered range and idles
+    # on its own connection between blocks. It ships with the psql base image.
+    # exec it directly: as PID 1 it must receive SIGTERM itself to stop cleanly.
+    if command -v haf_app_driver.py >/dev/null 2>&1; then
+        local limit_arg=()
+        [ "$n_blocks" != "null" ] && limit_arg=(--stop-at-block="$n_blocks")
+        exec haf_app_driver.py --app="${NFTTRACKER_SCHEMA}" --postgres-url="${POSTGRES_URL:-${POSTGRES_ACCESS}?application_name=nfttracker_block_processing}" "${limit_arg[@]}"
+    fi
+
+    echo "WARNING: haf_app_driver.py not found, falling back to the legacy CALL main() loop"
     date -u +"%Y-%m-%dT%H:%M:%S+00:00" > /tmp/block_processing_startup_time.txt
     exec run_with_reconnect.sh -- psql "$POSTGRES_ACCESS" -v "ON_ERROR_STOP=on" -v NFTTRACKER_SCHEMA="${NFTTRACKER_SCHEMA}" -c "\timing" -c "CALL ${NFTTRACKER_SCHEMA}.main('${NFTTRACKER_SCHEMA}', $n_blocks);"
 }
