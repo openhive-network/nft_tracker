@@ -73,10 +73,13 @@ process_blocks() {
     # ${NFTTRACKER_SCHEMA}.process_blocks procedure per delivered range and idles
     # on its own connection between blocks. It ships with the psql base image.
     # exec it directly: as PID 1 it must receive SIGTERM itself to stop cleanly.
+    # --lock holds the shared block-processor advisory lock on 'nft_tracker' for
+    # the driver's lifetime, so install_app.sh (via install_with_app_lock.py)
+    # skips instead of reinstalling underneath a running processor.
     if command -v haf_app_driver.py >/dev/null 2>&1; then
         local limit_arg=()
         [ "$n_blocks" != "null" ] && limit_arg=(--stop-at-block="$n_blocks")
-        exec haf_app_driver.py --app="${NFTTRACKER_SCHEMA}" --postgres-url="${POSTGRES_URL:-${POSTGRES_ACCESS}?application_name=nfttracker_block_processing}" "${limit_arg[@]}"
+        exec haf_app_driver.py --app="${NFTTRACKER_SCHEMA}" --postgres-url="${POSTGRES_URL:-${POSTGRES_ACCESS}?application_name=nfttracker_block_processing}" --lock=nft_tracker "${limit_arg[@]}"
     fi
 
     echo "WARNING: haf_app_driver.py not found, falling back to the legacy CALL main() loop"

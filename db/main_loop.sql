@@ -310,8 +310,9 @@ DECLARE
   _stall_logged BOOLEAN := FALSE;
   _stall_threshold CONSTANT INTERVAL := INTERVAL '10 seconds';
 BEGIN
-  -- Block until any active nft_tracker installer releases its exclusive
-  -- lock; held by this session until main() returns.
+  -- Block until any active nft_tracker installer releases its exclusive lock;
+  -- the shared lock is then held by this session so installers skip while
+  -- the legacy loop runs (haf_app_driver.py takes the same lock via --lock).
   PERFORM hive.acquire_app_block_processor_locks(ARRAY['nft_tracker']);
 
   IF _maxBlockLimit != NULL THEN
