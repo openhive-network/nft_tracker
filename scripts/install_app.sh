@@ -1,5 +1,6 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
+ORIGINAL_ARGS=("$@")
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit 1; pwd -P )"
 
 print_help () {
@@ -63,6 +64,21 @@ while [ $# -gt 0 ]; do
 done
 
 POSTGRES_ACCESS=${POSTGRES_URL:-"postgresql://$POSTGRES_USER@$POSTGRES_HOST:$POSTGRES_PORT/haf_block_log"}
+
+# Re-exec under the HAF install-lock wrapper (shipped in the psql base image)
+# unless already running under it. The wrapper holds the exclusive advisory
+# install lock on 'nft_tracker' for the lifetime of this script, and skips the
+# install (exit 0) when a block processor holds the shared lock. When the
+# wrapper isn't available (e.g. running outside the production image in CI),
+# run without the lock -- it is a production safety mechanism, not a
+# correctness requirement for tests.
+if [[ -z "${HAF_INSTALL_LOCK_HELD:-}" ]]; then
+  export HAF_INSTALL_LOCK_HELD=1
+  if command -v python3 >/dev/null 2>&1 && [[ -f /usr/local/bin/install_with_app_lock.py ]]; then
+    exec python3 /usr/local/bin/install_with_app_lock.py nft_tracker "$POSTGRES_ACCESS" "$0" "${ORIGINAL_ARGS[@]}"
+  fi
+  echo "WARNING: install_with_app_lock.py wrapper not found; running install without HAF advisory lock (expected in CI test setups, not in production install images)." >&2
+fi
 
 echo "Installing app..."
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../db/builtin_roles.sql"
