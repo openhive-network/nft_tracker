@@ -42,18 +42,10 @@ DECLARE
 BEGIN
   -- Set cache headers for version endpoint (doesn't change often)
   PERFORM set_config('response.headers', '[{"Cache-Control": "public, max-age=100000"}]', true);
-  
-  -- For now, return a placeholder version
-  -- TODO: This should be populated from a version table during deployment
-  _version := 'development';
-  
-  -- Check if we have a version table (to be created later)
-  IF EXISTS (SELECT 1 FROM information_schema.tables 
-             WHERE table_schema = 'nfttracker_app' 
-             AND table_name = 'version') THEN
-    SELECT git_hash INTO _version FROM nfttracker_app.version LIMIT 1;
-  END IF;
-  
+
+  -- The table is populated at install time by set_version() (see install_app.sh).
+  _version := COALESCE((SELECT git_hash FROM nfttracker_app.version LIMIT 1), 'unspecified');
+
   RETURN _version;
 END
 $$;

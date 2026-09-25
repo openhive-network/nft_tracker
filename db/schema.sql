@@ -274,6 +274,24 @@ INSERT INTO nfttracker_app.nfts_app_status
 VALUES (1, FALSE)
 ON CONFLICT (id) DO NOTHING;
 
+-- Git hash of the deployed build, served by the /version endpoint. Populated
+-- at install time by set_version() (see install_app.sh).
+CREATE TABLE IF NOT EXISTS nfttracker_app.version
+(
+  git_hash TEXT NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION nfttracker_app.set_version(_git_hash TEXT)
+RETURNS VOID
+LANGUAGE plpgsql VOLATILE
+AS
+$$
+BEGIN
+  TRUNCATE TABLE nfttracker_app.version;
+  INSERT INTO nfttracker_app.version(git_hash) VALUES (_git_hash);
+END
+$$;
+
 -- Register the custom_json partial index for NFT operations via HAF's
 -- index dependency system. HAF's indexes_controler creates it with
 -- CREATE INDEX CONCURRENTLY, avoiding ShareLock contention.
