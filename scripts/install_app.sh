@@ -87,6 +87,11 @@ psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../db/operation_typ
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../db/nft_actions.sql"
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -f "$SCRIPTPATH/../db/main_loop.sql"
 
+# #11: record the deployed version so /version can serve it. The image bakes the
+# git hash into NFTTRACKER_GIT_HASH (see Dockerfile). Local installs without it
+# fall back to 'unspecified'.
+psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on  -c "SET ROLE nfttracker_owner; SELECT nfttracker_app.set_version('${NFTTRACKER_GIT_HASH:-unspecified}');"
+
 echo "Installing API endpoints..."
 psql "$POSTGRES_ACCESS" -v ON_ERROR_STOP=on -c "SET custom.swagger_url = '$SWAGGER_URL';" -f "$SCRIPTPATH/../endpoints/endpoint_schema.sql"
 
