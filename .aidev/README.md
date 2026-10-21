@@ -74,9 +74,9 @@ The checks run in a container with your uid: CI's haf-test image (so `psql`,
 `python3-psycopg2`, `curl`, `install_with_app_lock.py` from the psql image the project
 `Dockerfile`'s `PSQL_CLIENT_VERSION` names, ShellCheck 0.11.0, the `postgrest` binary of
 common-ci-configuration (v12.0.2), and `tavern`/`pytest` in `/opt/venv`; all bases
-pinned by digest, nothing installed at run time. `/usr/lib/postgresql/17/bin` comes
-first on `PATH`: the image's `/usr/bin/psql` is HAF's wrapper, which wants a local data
-directory.
+pinned by digest, nothing installed at run time. The PostgreSQL binaries
+(`/usr/local/pgbin`, a link to `pg_config --bindir`) come first on `PATH`: the
+image's `/usr/bin/psql` is HAF's wrapper, which wants a local data directory.
 
 When `runtime/Dockerfile` changes, rebuild and re-pin **in the same commit**:
 

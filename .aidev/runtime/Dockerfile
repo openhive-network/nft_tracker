@@ -29,15 +29,17 @@ RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends socat python3-psycopg2 curl \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir tavern==3.7.0 pytest==9.1.1
+    && /opt/venv/bin/pip install --no-cache-dir tavern==3.7.0 pytest==9.1.1 \
+    && ln -s "$(pg_config --bindir)" /usr/local/pgbin
 
 COPY --from=postgrest /bin/postgrest /usr/local/bin/postgrest
 COPY --from=shellcheck /bin/shellcheck /usr/local/bin/shellcheck
 COPY --from=psql /usr/local/bin/install_with_app_lock.py /usr/local/bin/install_with_app_lock.py
 
 # The image's /usr/bin/psql is HAF's wrapper, which wants a local data directory;
-# the PostgreSQL binaries come first.
+# the PostgreSQL binaries (/usr/local/pgbin -> pg_config --bindir, whatever major
+# version the base HAF runs) come first.
 ENV HOME=/tmp PYTHONDONTWRITEBYTECODE=1 \
-    PATH=/usr/lib/postgresql/17/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    PATH=/usr/local/pgbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENTRYPOINT []
 CMD ["bash"]
