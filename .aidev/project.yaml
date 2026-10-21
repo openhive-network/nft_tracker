@@ -1,0 +1,102 @@
+# Profile for hive/nft_tracker, written by `aidev project scaffold` (#13561).
+#
+# Schema reference: docs/architecture/project-profile.md
+# Onboarding procedure: the `onboard-external-project` skill.
+# Guide: docs/operations/onboarding-an-external-project.md
+#
+# The generator writes a starting point, not a governed answer: every
+# binding below is the command a maintainer said this project runs, and it
+# is reviewed and edited like any other declaration.
+version: 2
+project: nft-tracker
+
+gitlab:
+  host: "gitlab.syncad.com"
+  path: "hive/nft_tracker"
+  id: 536
+
+# AIDEV integrates into its own branch and hands it off to develop by merge
+# request (`aidev handoff`: it opens the MR gated by the project CI), as in
+# hive/reputation_tracker, hive/balance_tracker and hive/haf_api_node. `stable` is
+# omitted, so `aidev release` never moves develop or master; develop -> master
+# stays the project's own process.
+branches:
+  integration: "aidev/integration"
+  handoff: "develop"
+
+# How this project's suites execute (#13892): one kind, stated once.
+environment:
+  kind: "container"
+  # Built by .aidev/runtime/build.sh from .aidev/runtime/Dockerfile (its only input).
+  image: "registry.gitlab.syncad.com/hive/nft_tracker/aidev-tests@sha256:34562bc4183ef7275d256cb6a312e3697b827ee6e08d811ee32d9a376fa24934"
+  inputs: [".aidev/runtime/Dockerfile"]
+
+issues:
+  intake_label: todo
+  taxonomy: ".aidev/labels.yaml"
+  decompose:
+    # `never` is where an external project starts: nothing marks work
+    # approved on this project's behalf until there is a track record.
+    auto_todo: never
+  # Reports about this project's work are filed against this project.
+  watcher_reports: self
+
+# The service stack the slots that install nft_tracker start (aidev#9890): one HAF
+# PostgreSQL with no hived, CI's own regression-test image run as CI's
+# regression_tests job runs it. The tests create HAF databases of their own and seed
+# mock blocks and operations into hafd.* (tests/setup.sql, tests/prelude.sql), which
+# the shared 5M-block HAF's consumer role cannot do, so this project does not use
+# sandbox.external. The runtime container joins the stack's network and reaches it as
+# `haf`; the candidate's own SQL is installed into it by .aidev/run-checks.sh, so no
+# nft_tracker image is built. Slots that only lint say `stack: false`. See
+# .aidev/README.md.
+sandbox:
+  compose: .aidev/test-stack.compose.yml
+  # One idle PostgreSQL; nothing replayed.
+  resource_class: light
+  services: [haf]
+  readiness_timeout: 300
+  env:
+    NFTTRACKER_TEST_DB_HOST: haf
+
+# Verification slots. Each binding is what this project genuinely runs for
+# that slot — never one selection repeated under seven names, which makes
+# seven gates report on the same evidence while claiming to check seven
+# different things.
+#
+# Lightweight first: lint, the stack pin against CI's HAF_VERSION, then install of
+# the candidate's SQL into the stack's HAF (CI's install_app step), CI's
+# regression_tests (./regress.sh: pg_regress over every tests/regression/sql test,
+# each in a fresh HAF database), and for full and canary an upgrade in place and an
+# uninstall followed by a fresh install. tests/api_tests (not run by CI, and stale
+# against the current endpoints) and tests/performance are not bound; see
+# .aidev/README.md.
+verification:
+  quick:
+    adapter: command
+    args: [".aidev/run-checks.sh", "quick", "shellcheck", "sql-registered", "stack-pins"]
+    stack: false
+    artifacts: ["test-results/quick/"]
+  full:
+    adapter: command
+    args: [".aidev/run-checks.sh", "full", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall"]
+    artifacts: ["test-results/full/"]
+  baseline:
+    adapter: command
+    args: [".aidev/run-checks.sh", "baseline", "install", "regression"]
+    artifacts: ["test-results/baseline/"]
+  canary:
+    adapter: command
+    args: [".aidev/run-checks.sh", "canary", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall"]
+    artifacts: ["test-results/canary/"]
+  # There is no coverage measurement for SQL; `coverage` runs the stackless checks
+  # (AIDEV runs it in the post-implementation scan only). `static` and `system`
+  # are left unbound: AIDEV runs neither for a project.
+  coverage:
+    adapter: command
+    args: [".aidev/run-checks.sh", "coverage", "shellcheck", "sql-registered"]
+    stack: false
+    artifacts: ["test-results/coverage/"]
+
+# Capability grants for target-side code. Empty until this project needs one.
+capabilities: []

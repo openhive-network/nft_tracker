@@ -4,3 +4,9 @@ venv/
 
 # Downloaded from common-ci-configuration at runtime
 scripts/process_openapi.py
+
+# AIDEV checks (.aidev/run-checks.sh) and pg_regress run artifacts
+/test-results/
+/.aidev/__pycache__/
+tests/regression/regression.out
+tests/regression/regression.diffs
