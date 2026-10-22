@@ -28,7 +28,7 @@ branches:
 environment:
   kind: "container"
   # Built by .aidev/runtime/build.sh from .aidev/runtime/Dockerfile (its only input).
-  image: "registry.gitlab.syncad.com/hive/nft_tracker/aidev-tests@sha256:fb96261cb51e730a5db8e90faa4874282254f6428b5d1932864b673959ca7693"
+  image: "registry.gitlab.syncad.com/hive/nft_tracker/aidev-tests@sha256:8cb27d7ff394d7dc45f43d1707de1f2c965a2dbbe3a2df0f8f5a461b42df20f2"
   inputs: [".aidev/runtime/Dockerfile"]
 
 issues:

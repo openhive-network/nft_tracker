@@ -1,0 +1,263 @@
+-- Check that nfttracker_app processes NFT operations while hived replays with
+-- psql-massive-index-policy=keep-monotonic: blocks are delivered once the kept core
+-- indexes exist, block processing reads no table whose indexes are all deferred,
+-- and the NFT custom_json index is registered once hived has written the 'NFT' type.
+-- Skipped on a HAF without early block processing (haf#379).
+SELECT EXISTS (
+  SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+  WHERE n.nspname = 'hive' AND p.proname = 'app_context_set_early_block_processing'
+) AS haf_has_early_block_processing \gset
+\if :haf_has_early_block_processing
+\i sql/early_block_processing_steps.sql
+-- The steps of test_early_block_processing.sql, run only on a HAF with early
+-- block processing so that the skip output does not echo them.
+-- Given: the context opted in at install, and a reinstall over it opts in again
+SELECT early_block_processing FROM hafd.contexts WHERE name = 'nfttracker_app';
+ early_block_processing 
+------------------------
+ t
+(1 row)
+
+SELECT hive.app_context_set_early_block_processing(ARRAY['nfttracker_app']::hive.contexts_group, FALSE);
+ app_context_set_early_block_processing 
+----------------------------------------
+ 
+(1 row)
+
+\set ECHO none
+SELECT early_block_processing FROM hafd.contexts WHERE name = 'nfttracker_app';
+ early_block_processing 
+------------------------
+ t
+(1 row)
+
+CREATE TABLE delivered(first_block INT, last_block INT, stage TEXT, deferred_table_scans BIGINT);
+CREATE TABLE
+-- Scans of the hafd tables whose indexes are all deferred, and of their indexes,
+-- made so far by the current transaction.
+CREATE FUNCTION deferred_table_scans()
+RETURNS BIGINT
+LANGUAGE sql
+AS $$
+  SELECT COALESCE(sum(pg_stat_get_xact_numscans(r.oid)), 0)::BIGINT
+  FROM (
+    SELECT c.oid FROM pg_class c
+    WHERE c.oid IN ('hafd.account_operations'::regclass, 'hafd.transactions'::regclass, 'hafd.transactions_multisig'::regclass)
+    UNION ALL
+    SELECT i.indexrelid FROM pg_index i
+    WHERE i.indrelid IN ('hafd.account_operations'::regclass, 'hafd.transactions'::regclass, 'hafd.transactions_multisig'::regclass)
+  ) r(oid);
+$$;
+CREATE FUNCTION
+-- The haf_app_driver.py loop: hive.app_next_iteration, then the procedure the
+-- application registered for each delivered range.
+CREATE PROCEDURE drive_nfttracker(_iterations INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  _range hive.blocks_range;
+  _scans BIGINT;
+BEGIN
+  FOR i IN 1 .. _iterations LOOP
+    CALL hive.app_next_iteration(ARRAY['nfttracker_app']::hive.contexts_group, _range, _wait => FALSE);
+    IF _range IS NOT NULL THEN
+      _scans := deferred_table_scans();
+      CALL nfttracker_app.process_blocks(_range);
+      INSERT INTO delivered
+      VALUES (_range.first_block, _range.last_block, hive.get_current_stage_name('nfttracker_app'),
+              deferred_table_scans() - _scans);
+    END IF;
+  END LOOP;
+END
+$$;
+CREATE PROCEDURE
+CREATE VIEW nft_index_registrations AS
+SELECT count(*) AS registered
+FROM hafd.indexes_constraints
+WHERE index_constraint_name ~ '^hive_operations_custom_json_types_[0-9_]+_idx$'
+  AND contexts @> ARRAY[hive.get_context_id('nfttracker_app')];
+CREATE VIEW
+-- hived is in its massive sync, which reports irreversible blocks by
+-- hive.end_massive_sync() and has not written the 'NFT' type yet
+DELETE FROM hafd.events_queue WHERE id > 0;
+DELETE 9
+SELECT hive.initialize_extension_data();
+ initialize_extension_data 
+---------------------------
+ 
+(1 row)
+
+DELETE FROM hafd.indexes_constraints WHERE index_constraint_name ~ '^hive_operations_custom_json_types_[0-9_]+_idx$';
+DELETE 1
+DELETE FROM hafd.custom_json_types WHERE custom_json_id = 'NFT';
+DELETE 1
+SET client_min_messages = warning;
+SET
+-- When: hived replays under the default drop-all policy
+SELECT hive.disable_fk_of_irreversible();
+ disable_fk_of_irreversible 
+----------------------------
+ 
+(1 row)
+
+SELECT hive.disable_indexes_of_irreversible('drop-all');
+ disable_indexes_of_irreversible 
+---------------------------------
+ 
+(1 row)
+
+SELECT hive.set_sync_state('REINDEX');
+ set_sync_state 
+----------------
+ 
+(1 row)
+
+SELECT hive.end_massive_sync(5);
+ end_massive_sync 
+------------------
+ 
+(1 row)
+
+SET client_min_messages = error;
+SET
+CALL drive_nfttracker(5);
+CALL
+SET client_min_messages = warning;
+SET
+-- Then: nothing is delivered before HAF restores its indexes
+SELECT hive.is_instance_ready_for_block_processing() AS ready_for_block_processing;
+ ready_for_block_processing 
+----------------------------
+ f
+(1 row)
+
+SELECT count(*) AS delivered_ranges FROM delivered;
+ delivered_ranges 
+------------------
+                0
+(1 row)
+
+SELECT hive.app_get_current_block_num('nfttracker_app') AS current_block;
+ current_block 
+---------------
+             0
+(1 row)
+
+SELECT nfttracker_backend.get_sync_status();
+psql:sql/early_block_processing_steps.sql:84: ERROR:  HAF instance is not ready for block processing (massive sync in progress)
+-- When: hived replays under keep-monotonic, still before the 'NFT' type exists
+SELECT hive.enable_indexes_of_irreversible();
+ enable_indexes_of_irreversible 
+--------------------------------
+ 
+(1 row)
+
+SELECT hive.disable_indexes_of_irreversible('keep-monotonic');
+ disable_indexes_of_irreversible 
+---------------------------------
+ 
+(1 row)
+
+SELECT hive.is_instance_ready() AS ready,
+       hive.is_instance_ready_for_block_processing() AS ready_for_block_processing,
+       hive.are_core_indexes_created('hafd.transactions', 'pk_hive_transactions') AS trx_hash_index;
+ ready | ready_for_block_processing | trx_hash_index 
+-------+----------------------------+----------------
+ f     | t                          | f
+(1 row)
+
+SET client_min_messages = error;
+SET
+CALL drive_nfttracker(5);
+CALL
+SET client_min_messages = warning;
+SET
+-- Then: blocks are processed while hived replays, the index waits for the type
+SELECT * FROM delivered ORDER BY first_block;
+ first_block | last_block |       stage        | deferred_table_scans 
+-------------+------------+--------------------+----------------------
+           1 |          5 | MASSIVE_PROCESSING |                    0
+(1 row)
+
+SELECT * FROM nft_index_registrations;
+ registered 
+------------
+          0
+(1 row)
+
+-- When: hived writes the 'NFT' type and NFT operations in the next blocks
+INSERT INTO hafd.custom_json_types(custom_json_id) VALUES ('NFT');
+INSERT 0 1
+CALL insert_nft_register_op(block_num=>6, pos=>1, auth=>'alice', symbol=>'alice/CARD', name=>'card', owner=>'alice', issuers=>ARRAY['alice'], max_count=>10);
+CALL
+CALL insert_nft_issue_op(block_num=>7, pos=>1, auth=>'alice', symbol=>'alice/CARD', holder=>'bob', data=>'{"power": 1}', tags=>ARRAY['rare'], soulbound=>false);
+CALL
+CALL insert_nft_transfer_op(block_num=>8, pos=>1, auth=>'bob', symbol=>'alice/CARD', ids=>ARRAY[expected_instance_id(7, 1, 1)], to_account=>'charlie');
+CALL
+SELECT hive.end_massive_sync(9);
+ end_massive_sync 
+------------------
+ 
+(1 row)
+
+SET client_min_messages = error;
+SET
+CALL drive_nfttracker(5);
+CALL
+SET client_min_messages = warning;
+SET
+-- Then: they are processed in the massive stage, still while hived replays,
+-- without reading a table whose indexes are deferred, and the index is registered
+SELECT hive.is_instance_ready() AS ready;
+ ready 
+-------
+ f
+(1 row)
+
+SELECT * FROM delivered ORDER BY first_block;
+ first_block | last_block |       stage        | deferred_table_scans 
+-------------+------------+--------------------+----------------------
+           1 |          5 | MASSIVE_PROCESSING |                    0
+           6 |          9 | MASSIVE_PROCESSING |                    0
+(2 rows)
+
+SELECT * FROM nft_index_registrations;
+ registered 
+------------
+          1
+(1 row)
+
+SELECT creator, owner, symbol, name, max_count, issuers FROM types_view;
+ creator | owner | symbol | name | max_count | issuers 
+---------+-------+--------+------+-----------+---------
+ alice   | alice | CARD   | card |        10 | {alice}
+(1 row)
+
+SELECT holder, data, tags, soulbound, creator, symbol FROM instances_view;
+ holder  |     data     |  tags  | soulbound | creator | symbol 
+---------+--------------+--------+-----------+---------+--------
+ charlie | {"power": 1} | {rare} | f         | alice   | CARD
+(1 row)
+
+SELECT action, symbol, account, success FROM nfttracker_app.operation_results ORDER BY id;
+  action  |   symbol   | account | success 
+----------+------------+---------+---------
+ register | alice/CARD | alice   | t
+ issue    | alice/CARD | alice   | t
+ transfer | alice/CARD | bob     | t
+(3 rows)
+
+-- The API reports the progress, and refuses lookups by transaction hash
+SELECT nfttracker_backend.get_sync_status()->>'last_block_num' AS last_block_num;
+ last_block_num 
+----------------
+ 9
+(1 row)
+
+SELECT nfttracker_backend.get_trx_results(repeat('ab', 20));
+psql:sql/early_block_processing_steps.sql:121: ERROR:  HAF has not built its transaction hash index yet (massive sync in progress)
+SELECT nfttracker_backend.get_nft_instances_by_trx(repeat('ab', 20));
+psql:sql/early_block_processing_steps.sql:122: ERROR:  HAF has not built its transaction hash index yet (massive sync in progress)
+\else
+\echo 'SKIP: HAF has no hive.app_context_set_early_block_processing() (haf#379)'
+\endif

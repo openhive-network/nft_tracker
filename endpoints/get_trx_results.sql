@@ -10,6 +10,9 @@ SET ROLE nfttracker_owner;
       Returns the results of NFT operations in a given transaction,
       including both successes and failures with error messages.
 
+      Fails fast with an error while HAF's massive sync has not yet built
+      the transaction hash index, rather than executing an unindexed lookup.
+
       SQL example
       * `SELECT * FROM nfttracker_endpoints.get_trx_results(''abc123...'');`
 

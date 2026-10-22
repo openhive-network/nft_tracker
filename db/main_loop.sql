@@ -309,6 +309,7 @@ DECLARE
   _idle_since TIMESTAMPTZ;
   _stall_logged BOOLEAN := FALSE;
   _stall_threshold CONSTANT INTERVAL := INTERVAL '10 seconds';
+  _index_registered BOOLEAN;
 BEGIN
   -- Block until any active nft_tracker installer releases its exclusive lock;
   -- the shared lock is then held by this session so installers skip while
@@ -323,8 +324,8 @@ BEGIN
 
   -- Register partial index on hafd.operations for NFT custom_json ops.
   -- HAF's indexes_controler creates it concurrently when appropriate.
-  -- No-op if 'NFT' type doesn't exist yet (first sync from genesis).
-  PERFORM nfttracker_app.register_nft_index();
+  -- Retried before every range until the 'NFT' type exists (sync from genesis).
+  _index_registered := nfttracker_app.register_nft_index_if_type_exists();
 
   RAISE NOTICE 'Last block processed by application: %', hive.app_get_current_block_num(_appContext);
   RAISE NOTICE 'Entering application main loop...';
@@ -354,6 +355,9 @@ BEGIN
 
     _idle_since := NULL;
     _stall_logged := FALSE;
+    IF NOT _index_registered THEN
+      _index_registered := nfttracker_app.register_nft_index_if_type_exists();
+    END IF;
     PERFORM nfttracker_app.process_blocks(_appContext, _blocks_range);
   END LOOP;
 
@@ -369,9 +373,11 @@ $$;
  * haf#341): processes one range delivered by hive.app_next_iteration. The driver
  * owns the transaction, so this must not COMMIT.
  *
- * main() registered the NFT custom_json index once at startup; do the same once
- * per driver session (a session-level flag - a reconnect, like a main() restart,
- * repeats it), as hive.register_custom_json_type_index re-registers on every call.
+ * Like main(), registers the NFT custom_json index once per driver session (a
+ * session-level flag - a reconnect, like a main() restart, repeats it), as
+ * hive.register_custom_json_type_index re-registers on every call. The flag is set
+ * only once the 'NFT' type exists, so a sync started before hived wrote it
+ * registers the index on the first range after.
  */
 CREATE OR REPLACE PROCEDURE nfttracker_app.process_blocks( _block_range hive.blocks_range )
 LANGUAGE 'plpgsql'
@@ -379,8 +385,9 @@ AS
 $$
 BEGIN
   IF current_setting( 'nfttracker.index_registered', true ) IS DISTINCT FROM '1' THEN
-    PERFORM nfttracker_app.register_nft_index();
-    PERFORM set_config( 'nfttracker.index_registered', '1', false );
+    IF nfttracker_app.register_nft_index_if_type_exists() THEN
+      PERFORM set_config( 'nfttracker.index_registered', '1', false );
+    END IF;
   END IF;
 
   PERFORM nfttracker_app.process_blocks( 'nfttracker_app', _block_range );
