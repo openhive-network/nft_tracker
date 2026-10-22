@@ -10,12 +10,12 @@
 # reach the database as `haf` and install the candidate's own SQL, so no nft_tracker
 # image is built per change.
 #
-# Pin: the haf-test tag CI resolves for HAF_VERSION 7ada8ad6, as repo:tag@sha256.
+# Pin: the haf-test tag CI resolves for HAF_VERSION dfbc6e13, as repo:tag@sha256.
 # Re-pin it (and the runtime image's FROM) when .gitlab-ci.yml's HAF_VERSION moves
 # (.aidev/README.md); the `stack-pins` check fails until both match.
 services:
   haf:
-    image: registry.gitlab.syncad.com/hive/nft_tracker/haf-test:7ada8ad6-v2@sha256:6534dff2cf4e55ea4fe9c5c89e6c55304e6eb3ae14008e1c5fe09a0486fc950c
+    image: registry.gitlab.syncad.com/hive/nft_tracker/haf-test:dfbc6e13-v2@sha256:a540b19306194b1b16e29c42cefe49a1f4b3d2d6afb8e8d72aab04684c14e191
     command: ["--skip-hived"]
     environment:
       DATADIR: /home/hived/datadir

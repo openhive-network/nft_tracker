@@ -315,6 +315,22 @@ BEGIN
     PERFORM hive.register_custom_json_type_index('nfttracker_app', ARRAY['NFT']);
 END $$;
 
+-- register_nft_index() once hived has written the 'NFT' type, which during a
+-- replay from genesis happens only after block processing has started.
+-- Returns whether it registered, so a caller retries until it has.
+CREATE OR REPLACE FUNCTION nfttracker_app.register_nft_index_if_type_exists()
+RETURNS BOOLEAN
+LANGUAGE 'plpgsql' VOLATILE
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM hafd.custom_json_types WHERE custom_json_id = 'NFT') THEN
+        RETURN FALSE;
+    END IF;
+
+    PERFORM nfttracker_app.register_nft_index();
+    RETURN TRUE;
+END $$;
+
 DO $$
 DECLARE
   synchronization_stages hive.application_stages;
@@ -328,5 +344,22 @@ BEGIN
       _is_forking => FALSE,
       _stages => synchronization_stages
     );
+  END IF;
+END $$;
+
+-- Block processing reads hafd.operations by block range and id, hafd.blocks by
+-- number and hafd.accounts by name and id, all indexes HAF keeps through a
+-- keep-monotonic massive sync, so the context can process blocks while hived
+-- still replays. Outside the creation block so a reinstall opts in as well.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname = 'hive' AND p.proname = 'app_context_set_early_block_processing'
+  ) THEN
+    PERFORM hive.app_context_set_early_block_processing(ARRAY['nfttracker_app']::hive.contexts_group);
+  ELSE
+    RAISE NOTICE 'HAF has no hive.app_context_set_early_block_processing() — nfttracker_app processes blocks once HAF is ready';
   END IF;
 END $$;

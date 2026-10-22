@@ -22,7 +22,7 @@ FROM registry.gitlab.syncad.com/hive/common-ci-configuration/postgrest@sha256:92
 FROM registry.gitlab.syncad.com/hive/common-ci-configuration/psql:da9ffb6003edfb5cbaf1dfcde8e1847667af7d24@sha256:bf3f0974b0bccfff22060bccfd7cbe469f56e757d8b07535f8ee8b4288e0be67 AS psql
 FROM koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d AS shellcheck
 
-FROM registry.gitlab.syncad.com/hive/nft_tracker/haf-test:7ada8ad6-v2@sha256:6534dff2cf4e55ea4fe9c5c89e6c55304e6eb3ae14008e1c5fe09a0486fc950c
+FROM registry.gitlab.syncad.com/hive/nft_tracker/haf-test:dfbc6e13-v2@sha256:a540b19306194b1b16e29c42cefe49a1f4b3d2d6afb8e8d72aab04684c14e191
 
 USER root
 RUN apt-get update -qq \

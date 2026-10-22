@@ -48,8 +48,10 @@ quiet _psql \
     -f ../../endpoints/types/nft_instance_with_type.sql \
     -f ../../endpoints/types/trx_result.sql \
     -f ../../endpoints/backend/get_nft_instances.sql \
+    -f ../../endpoints/backend/require_trx_hash_index.sql \
     -f ../../endpoints/backend/get_nft_instances_by_trx.sql \
     -f ../../endpoints/backend/get_trx_results.sql \
+    -f ../../endpoints/backend/get_sync_status.sql \
     -f ../../endpoints/get_version.sql \
     -f ../../endpoints/get_nft_types.sql \
     -f ../../endpoints/get_nft_instances_with_tags.sql \

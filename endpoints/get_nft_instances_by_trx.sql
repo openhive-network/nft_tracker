@@ -9,6 +9,9 @@ SET ROLE nfttracker_owner;
     description: |
       Returns NFT instances created by a given transaction.
 
+      Fails fast with an error while HAF's massive sync has not yet built
+      the transaction hash index, rather than executing an unindexed lookup.
+
       SQL example
       * `SELECT * FROM nfttracker_endpoints.get_nft_instances_by_trx(''abc123...'');`
 

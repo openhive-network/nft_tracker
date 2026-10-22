@@ -15,6 +15,8 @@ BEGIN
     RAISE EXCEPTION 'Invalid transaction hash: expected 40 hex characters, got: %', p_trx_id;
   END IF;
 
+  PERFORM nfttracker_backend.require_trx_hash_index();
+
   RETURN COALESCE(ARRAY(
     SELECT ROW(
       i.id::TEXT,
