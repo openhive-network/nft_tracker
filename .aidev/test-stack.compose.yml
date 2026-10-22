@@ -23,8 +23,7 @@ services:
       PGCTLTIMEOUT: "600"
       # Every role from anywhere on the stack network, as CI. Test-grade: the
       # database is throwaway and reachable only on the stack's own network.
-      PG_ACCESS: |
-        "host    all    all    0.0.0.0/0    trust"
+      PG_ACCESS: "host    all    all    0.0.0.0/0    trust"
     healthcheck:
       test: ["CMD-SHELL", "psql -h 127.0.0.1 -U haf_admin -d haf_block_log -Atc \"select 1 from pg_extension where extname = 'hive_fork_manager'\" | grep -qx 1"]
       interval: 5s
