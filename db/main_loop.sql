@@ -150,17 +150,29 @@ BEGIN
 END
 $$;
 
-CREATE OR REPLACE FUNCTION nfttracker_app.block_range_data(
+/** The statement block_range_data executes to process the 'NFT' custom_json
+    operations of blocks <_first_block_num, _last_block_num>, or NULL when hived
+    has not written the 'NFT' type yet (no operation can have it).
+    The type ids are literals: the planner uses the partial index registered by
+    register_nft_index() only when it can prove the custom_json_type_id
+    condition at plan time, which it cannot for a function call or a parameter.
+**/
+CREATE OR REPLACE FUNCTION nfttracker_app.block_range_data_query(
     IN _first_block_num INT,
     IN _last_block_num INT
 )
-RETURNS VOID
+RETURNS TEXT
 LANGUAGE 'plpgsql'
-VOLATILE
+STABLE
 AS $$
 DECLARE
-  _result INT;
+  _nft_type_id SMALLINT := nfttracker_backend.custom_json_nft_type_id();
 BEGIN
+  IF _nft_type_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN format($query$
   WITH select_ops AS
   (
     SELECT x.block_num, x.operation_id, (x.op).required_auths, (x.op).json::JSONB FROM
@@ -170,9 +182,9 @@ BEGIN
         o.id AS operation_id,
         jsonb_populate_record(NULL::hive.custom_json_operation, o.body_value) as op
       FROM hive.operations_view AS o
-      WHERE o.op_type_id = nfttracker_backend.op_custom_json()
-      AND o.custom_json_type_id = nfttracker_backend.custom_json_nft_type_id()
-      AND o.block_num BETWEEN _first_block_num AND _last_block_num
+      WHERE o.op_type_id = %s
+      AND o.custom_json_type_id = %s
+      AND o.block_num BETWEEN %s AND %s
     ) AS x
   ),
   selected_range AS
@@ -189,7 +201,26 @@ BEGIN
     SELECT nfttracker_app.process_actions(o.block_num, o.active_auth, o.json, o.operation_id)
     FROM selected_range AS o
   )
-  SELECT COUNT(*) FROM process INTO _result;
+  SELECT COUNT(*) FROM process
+  $query$,
+    nfttracker_backend.op_custom_json(), _nft_type_id, _first_block_num, _last_block_num);
+END
+$$;
+
+CREATE OR REPLACE FUNCTION nfttracker_app.block_range_data(
+    IN _first_block_num INT,
+    IN _last_block_num INT
+)
+RETURNS VOID
+LANGUAGE 'plpgsql'
+VOLATILE
+AS $$
+DECLARE
+  _query TEXT := nfttracker_app.block_range_data_query(_first_block_num, _last_block_num);
+BEGIN
+  IF _query IS NOT NULL THEN
+    EXECUTE _query;
+  END IF;
 END
 $$;
 
