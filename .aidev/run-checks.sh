@@ -11,9 +11,8 @@
 #                     at the default severity on .aidev/'s own scripts
 #   - sql-registered  every .sql file under db/ and endpoints/ is applied by
 #                     scripts/install_app.sh (a file it misses never reaches a database)
-#   - stack-pins      the HAF test image of .aidev/test-stack.compose.yml and the
-#                     runtime image's FROM are the haf-test tag for .gitlab-ci.yml's
-#                     HAF_VERSION (reads only the tree)
+#   - stack-pins      the HAF test image of .aidev/test-stack.compose.yml is the
+#                     haf-test tag for .gitlab-ci.yml's HAF_VERSION (reads only the tree)
 #   - install         scripts/install_app.sh into the stack's haf_block_log
 #                     (NFTTRACKER_TEST_DB_HOST, default `haf`) through
 #                     install_with_app_lock.py (CI's install_app step); the context
@@ -84,10 +83,10 @@ sql_registered() {
     return "$missing"
 }
 
-# CI builds its regression image as haf-test:${HAF_VERSION}-v2; the stack and the
-# runtime image must run that same tag.
+# CI builds its regression image as haf-test:${HAF_VERSION}-v2; the stack must run
+# that same tag. (The runtime image follows ccc's haf-app-test-runner instead.)
 stack_pins() {
-    local version want stale=0 f
+    local version want f=.aidev/test-stack.compose.yml
     version="$(sed -n 's/^ *HAF_VERSION: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' .gitlab-ci.yml)"
     if [ -z "$version" ] || [ "$(printf '%s\n' "$version" | wc -l)" -ne 1 ]; then
         echo "expected one HAF_VERSION in .gitlab-ci.yml, found '$version'"
@@ -95,15 +94,11 @@ stack_pins() {
     fi
     want="registry.gitlab.syncad.com/hive/nft_tracker/haf-test:$version-v2@sha256:"
     echo ".gitlab-ci.yml HAF_VERSION: $version"
-    for f in .aidev/test-stack.compose.yml .aidev/runtime/Dockerfile; do
-        if grep -q "hive/nft_tracker/haf-test" "$f" && ! grep -q "${want}[0-9a-f]\{64\}" "$f"; then
-            echo "STALE: $f does not pin ${want}<digest>: re-pin it (.aidev/README.md)"
-            stale=1
-        else
-            echo "$f: $(grep -o 'hive/nft_tracker/haf-test:[^ "]*' "$f" | head -1)"
-        fi
-    done
-    return "$stale"
+    if ! grep -q "${want}[0-9a-f]\{64\}" "$f"; then
+        echo "STALE: $f does not pin ${want}<digest>: re-pin it (.aidev/README.md)"
+        return 1
+    fi
+    echo "$f: $(grep -o 'hive/nft_tracker/haf-test:[^ "]*' "$f" | head -1)"
 }
 
 q() { psql "$ADMIN_URL" -v ON_ERROR_STOP=on -X "$@"; }
@@ -198,7 +193,7 @@ api() {
     cp tests/api_tests/*.yaml "$tdir/"
     sed -i "s|http://localhost:8080|http://localhost:$API_PORT|" "$tdir/tavern_global_config.yaml"
     local rc=0
-    (cd "$tdir" && /opt/venv/bin/pytest -vv -p no:cacheprovider --junitxml="$OLDPWD/$junit" ./*.tavern.yaml) || rc=$?
+    (cd "$tdir" && pytest -vv -p no:cacheprovider --junitxml="$OLDPWD/$junit" ./*.tavern.yaml) || rc=$?
     kill "$postgrest_pid" 2>/dev/null; wait "$postgrest_pid" 2>/dev/null; postgrest_pid=""
     # The database's objects belong to the app's roles, which uninstall drops.
     psql "postgresql://haf_admin@localhost:5432/postgres" -X -c "DROP DATABASE IF EXISTS $db WITH (FORCE)" || rc=1

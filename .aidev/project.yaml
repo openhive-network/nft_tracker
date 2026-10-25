@@ -27,8 +27,14 @@ branches:
 # How this project's suites execute (#13892): one kind, stated once.
 environment:
   kind: "container"
-  # Built by .aidev/runtime/build.sh from .aidev/runtime/Dockerfile (its only input).
-  image: "registry.gitlab.syncad.com/hive/nft_tracker/aidev-tests@sha256:8cb27d7ff394d7dc45f43d1707de1f2c965a2dbbe3a2df0f8f5a461b42df20f2"
+  # The suites run in .aidev/runtime/Dockerfile built by AIDEV on whatever
+  # common-ci-configuration's haf-app-test-runner:develop names at the run, so the
+  # tool versions are ccc's and none is pinned here.
+  build: {dockerfile: ".aidev/runtime/Dockerfile", context: ".aidev/runtime"}
+  base: {image: "registry.gitlab.syncad.com/hive/common-ci-configuration/haf-app-test-runner:develop", follow: true}
+  # The seed pin: the Dockerfile built on the base by .aidev/runtime/build.sh. Under a
+  # followed base it is not what the suites run in and need not move with the base.
+  image: "registry.gitlab.syncad.com/hive/nft_tracker/aidev-tests@sha256:e228bebb8d62deef0e592ed30b8fa48753e5a78b3cbfba40a67b27ef6ddc9e55"
   inputs: [".aidev/runtime/Dockerfile"]
 
 issues:
