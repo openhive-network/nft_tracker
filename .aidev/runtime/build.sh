@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Build (and with --push, publish) the image AIDEV runs this project's checks in
+# Build (and with --push, publish) the seed image of this project's checks
 # (.aidev/runtime/Dockerfile -> hive/nft_tracker/aidev-tests, .aidev/project.yaml's
-# `environment.image`) and print the digest-pinned reference to put there. See
-# .aidev/README.md.
+# `environment.image`) and print the digest-pinned reference to put there. AIDEV
+# builds the image the suites run in itself, on the followed base
+# (`environment.base`); see .aidev/README.md.
 #
-# The tag is `aidev-<hash>`, the hash of the image input (its Dockerfile; every
-# FROM is digest-pinned); the registry cleanup policy keeps `aidev-*` tags. When
+# The tag is `aidev-<hash>`, the hash of the image input (the Dockerfile, built on
+# its default BASE_IMAGE as that tag stands at the build); the registry cleanup
+# policy keeps `aidev-*` tags. When
 # <repository>:aidev-<hash> is already in the registry nothing is built: the script
 # prints that image's digest.
 #
@@ -95,9 +97,9 @@ region_builder() {
 }
 builder="$(region_builder)"
 
-# The FROM is digest-pinned, so no --pull. No provenance, so the pushed digest is a
+# --pull: the base is a moving tag. No provenance, so the pushed digest is a
 # plain image manifest.
-build=(docker buildx build ${builder:+--builder "$builder"} --provenance=false -f "$DOCKERFILE" -t "$REPOSITORY:$TAG")
+build=(docker buildx build ${builder:+--builder "$builder"} --provenance=false --pull -f "$DOCKERFILE" -t "$REPOSITORY:$TAG")
 if [ "$mode" != "--push" ]; then
     "${build[@]}" --load "$context" >&2
     echo "$REPOSITORY:$TAG"

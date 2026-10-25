@@ -19,7 +19,7 @@ the failure body. `regression` also writes one case per pg_regress test
 |---|---|
 | `shellcheck` | ShellCheck at error severity on every `*.sh` outside `.aidev/` (CI runs no linter; `scripts/` carries warnings today), and at its default severity on `.aidev/`'s own scripts |
 | `sql-registered` | every `.sql` file under `db/` and `endpoints/` is applied by `scripts/install_app.sh` |
-| `stack-pins` | `.aidev/test-stack.compose.yml` and `.aidev/runtime/Dockerfile` pin `hive/nft_tracker/haf-test:<HAF_VERSION>-v2@sha256:…` for `.gitlab-ci.yml`'s `HAF_VERSION` (reads only the tree) |
+| `stack-pins` | `.aidev/test-stack.compose.yml` pins `hive/nft_tracker/haf-test:<HAF_VERSION>-v2@sha256:…` for `.gitlab-ci.yml`'s `HAF_VERSION` (reads only the tree) |
 | `install` | `scripts/install_app.sh` into the stack's `haf_block_log` (CI's `install_app` step), through `install_with_app_lock.py`; the context `nfttracker_app` and the version row must exist |
 | `regression` | `./regress.sh`, CI's `regression_tests`: pg_regress over every `tests/regression/sql/test_*.sql`, each in a fresh HAF database seeded with mock blocks |
 | `reinstall` | `scripts/install_app.sh` again over the installed schema (an upgrade in place) |
@@ -63,22 +63,23 @@ docker compose -p nft-checks -f .aidev/test-stack.compose.yml down -v
 ```
 
 When `.gitlab-ci.yml`'s `HAF_VERSION` moves, CI builds the new haf-test tag on its next
-`regression_tests` run; then re-pin the compose file's `haf` image and the runtime
-Dockerfile's `FROM` to that tag's digest, rebuild the runtime image (below) and put it
-into `environment.image`, all in one commit. `stack-pins` fails until both pins match.
+`regression_tests` run; then re-pin the compose file's `haf` image to that tag's digest.
+`stack-pins` fails until it matches.
 
 ## The test runtime image (`runtime/`)
 
-The checks run in a container with your uid: CI's haf-test image (so `psql`,
-`pg_regress` and PGXS are exactly what CI's `./regress.sh` uses), plus `socat`,
-`python3-psycopg2`, `curl`, `install_with_app_lock.py` from the psql image the project
-`Dockerfile`'s `PSQL_CLIENT_VERSION` names, ShellCheck 0.11.0, the `postgrest` binary of
-common-ci-configuration (v12.0.2), and `tavern`/`pytest` in `/opt/venv`; all bases
-pinned by digest, nothing installed at run time. The PostgreSQL binaries
-(`/usr/local/pgbin`, a link to `pg_config --bindir`) come first on `PATH`: the
-image's `/usr/bin/psql` is HAF's wrapper, which wants a local data directory.
+The checks run in a container with your uid, built on common-ci-configuration's
+`haf-app-test-runner:develop`, which `project.yaml` follows (`environment.base`,
+`follow: true`): before each run AIDEV resolves that tag and builds `runtime/Dockerfile`
+on it, so `psql`, ShellCheck, `postgrest`, `pytest`, `tavern` and `psycopg2` are ccc's
+`docker-bake.hcl` versions and this repository pins none of them. The Dockerfile adds
+`postgresql-server-dev` for the base's psql major (HAF's) and `make`, so `pg_regress`
+and PGXS run CI's `./regress.sh`, `socat`, and `install_with_app_lock.py` from the psql
+image the project `Dockerfile`'s `PSQL_CLIENT_VERSION` names (the application image's
+own install path).
 
-When `runtime/Dockerfile` changes, rebuild and re-pin **in the same commit**:
+`environment.image` is only the seed pin the profile requires: it need not move when
+the base or the Dockerfile does. To refresh it:
 
 ```bash
 .aidev/runtime/build.sh --push   # registry digest if aidev-<input hash> exists, else build + push
