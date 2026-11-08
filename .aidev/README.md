@@ -20,10 +20,13 @@ the failure body. `regression` also writes one case per pg_regress test
 | `shellcheck` | ShellCheck at error severity on every `*.sh` outside `.aidev/` (CI runs no linter; `scripts/` carries warnings today), and at its default severity on `.aidev/`'s own scripts |
 | `sql-registered` | every `.sql` file under `db/` and `endpoints/` is applied by `scripts/install_app.sh` |
 | `stack-pins` | `.aidev/test-stack.compose.yml` pins `hive/nft_tracker/haf-test:<HAF_VERSION>-v2@sha256:…` for `.gitlab-ci.yml`'s `HAF_VERSION` (reads only the tree) |
-| `install` | `scripts/install_app.sh` into the stack's `haf_block_log` (CI's `install_app` step), through `install_with_app_lock.py`; the context `nfttracker_app` and the version row must exist |
+| `install` | `scripts/install_app.sh` into the stack's `haf_block_log` (CI's `install_app` step), through `install_with_app_lock.py`; the context `nfttracker_app` and the version row must exist, and on a HAF with the application registry the context's only row in `hafd.applications` is `nft_tracker` |
 | `regression` | `./regress.sh`, CI's `regression_tests`: pg_regress over every `tests/regression/sql/test_*.sql`, each in a fresh HAF database seeded with mock blocks |
-| `reinstall` | `scripts/install_app.sh` again over the installed schema (an upgrade in place) |
+| `reinstall` | `scripts/install_app.sh` again over the installed schema (an upgrade in place), with `nft_tracker` paused in the registry; it must stay paused |
 | `uninstall` | `scripts/uninstall_app.sh`; the context and the three schemas must be gone; then `install` again from scratch |
+| `registry-old-name` | in a throwaway HAF database, the context registered under the old name `nfttracker_app`: the install must fail with the message naming that row and `hive.app_unregister('nfttracker_app')`, and leave the row unchanged. Skipped on a HAF without the registry |
+| `sync` | in a throwaway HAF database seeded with `tests/api_tests/mock_data.sql`, `scripts/process_blocks.sh --stop-at-block=<last mock block>` as `nfttracker_owner` (`haf_app_driver.py --app=nft_tracker --lock=nft_tracker`) must process every block |
+| `entry-dropped` | in a throwaway HAF database, with `nfttracker_app.process_blocks(hive.blocks_range)` dropped, `scripts/process_blocks.sh` must be refused the `nft_tracker` lock ("reinstall the application"). Skipped on a HAF before haf#403 |
 | `api` | `tests/api_tests` as `run_api_tests.sh` runs them (without its `postgrest.conf` precondition: nothing reads that file). **Not bound to any slot**: CI does not run it, and two of its three files call `get_nft_types`/`get_nft_instances` with parameters the endpoints no longer take (PostgREST `PGRST202`) |
 
 `tests/regression`'s Makefile and pg_regress options name `localhost`, so the steps
@@ -34,7 +37,7 @@ itself runs unchanged.
 |---|---|---|
 | quick | shellcheck, sql-registered, stack-pins | no |
 | coverage | shellcheck, sql-registered | no |
-| full, canary | quick's plus install, regression, reinstall, uninstall | yes |
+| full, canary | quick's plus install, regression, reinstall, uninstall, registry-old-name, sync, entry-dropped | yes |
 | baseline | install, regression | yes |
 
 `static` and `system` are unbound: AIDEV runs neither for a project. Not bound either,
