@@ -74,7 +74,7 @@ CREATE PROCEDURE
 CREATE VIEW nft_index_registrations AS
 SELECT count(*) AS registered
 FROM hafd.indexes_constraints
-WHERE index_constraint_name ~ '^hive_operations_custom_json_types_[0-9_]+_idx$'
+WHERE index_constraint_name ~ '^hive_operations_custom_json_(types|block_num)_[0-9_]+_idx$'
   AND contexts @> ARRAY[hive.get_context_id('nfttracker_app')];
 CREATE VIEW
 -- hived is in its massive sync, which reports irreversible blocks by
@@ -87,7 +87,7 @@ SELECT hive.initialize_extension_data();
  
 (1 row)
 
-DELETE FROM hafd.indexes_constraints WHERE index_constraint_name ~ '^hive_operations_custom_json_types_[0-9_]+_idx$';
+DELETE FROM hafd.indexes_constraints WHERE index_constraint_name ~ '^hive_operations_custom_json_(types|block_num)_[0-9_]+_idx$';
 DELETE 1
 DELETE FROM hafd.custom_json_types WHERE custom_json_id = 'NFT';
 DELETE 1

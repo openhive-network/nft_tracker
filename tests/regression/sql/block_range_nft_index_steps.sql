@@ -4,7 +4,9 @@
 -- Given: hived's indexes controller has built the index nft_tracker registered
 SELECT index_name AS nft_index FROM hafd.custom_json_type_index_requests
 WHERE context_id = hive.get_context_id('nfttracker_app') \gset
+\set ECHO none
 SELECT command FROM hafd.indexes_constraints WHERE index_constraint_name = :'nft_index' \gexec
+\set ECHO all
 
 -- Given: NFT operations are a tiny share of the custom_json operations
 INSERT INTO hafd.custom_json_types(custom_json_id) VALUES ('other');
