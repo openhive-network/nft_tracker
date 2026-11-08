@@ -74,7 +74,9 @@ sandbox:
 # the candidate's SQL into the stack's HAF (CI's install_app step), CI's
 # regression_tests (./regress.sh: pg_regress over every tests/regression/sql test,
 # each in a fresh HAF database), and for full and canary an upgrade in place and an
-# uninstall followed by a fresh install. tests/api_tests (not run by CI, and stale
+# uninstall followed by a fresh install, then the registry name checks (an old-name
+# row refused, block processing under nft_tracker, the entry-procedure lock refusal) in
+# throwaway databases. tests/api_tests (not run by CI, and stale
 # against the current endpoints) and tests/performance are not bound; see
 # .aidev/README.md.
 verification:
@@ -85,7 +87,7 @@ verification:
     artifacts: ["test-results/quick/"]
   full:
     adapter: command
-    args: [".aidev/run-checks.sh", "full", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall"]
+    args: [".aidev/run-checks.sh", "full", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
     artifacts: ["test-results/full/"]
   baseline:
     adapter: command
@@ -93,7 +95,7 @@ verification:
     artifacts: ["test-results/baseline/"]
   canary:
     adapter: command
-    args: [".aidev/run-checks.sh", "canary", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall"]
+    args: [".aidev/run-checks.sh", "canary", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
     artifacts: ["test-results/canary/"]
   # There is no coverage measurement for SQL; `coverage` runs the stackless checks
   # (AIDEV runs it in the post-implementation scan only). `static` and `system`

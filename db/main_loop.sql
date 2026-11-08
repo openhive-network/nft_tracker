@@ -426,7 +426,32 @@ END
 $$;
 
 -- Register with the HAF application registry so a generic driver can run this
--- application and other applications can declare dependencies on it.
-SELECT hive.app_register( 'nfttracker_app', ARRAY[ 'nfttracker_app' ]::hive.contexts_group, 'nfttracker_app.process_blocks' );
+-- application and other applications can declare dependencies on it. The registry
+-- name is the block-processor lock name, 'nft_tracker' (scripts/install_app.sh,
+-- scripts/process_blocks.sh): HAF's lock helpers find the application by it to
+-- refuse the lock while the entry procedure is gone (haf#403).
+--
+-- Installs before that registered under the schema name. While such a row holds the
+-- context, hive.app_register takes it for an embedding application and skips, so the
+-- block processor would never find 'nft_tracker'. Every deployment is replayed from
+-- scratch rather than migrated, so the install refuses it instead.
+DO $$
+DECLARE
+  __old_name TEXT;
+BEGIN
+  IF to_regclass( 'hafd.applications' ) IS NULL THEN
+    RETURN;
+  END IF;
+
+  SELECT a.name INTO __old_name
+  FROM hafd.applications a
+  WHERE a.name <> 'nft_tracker' AND a.contexts = ARRAY[ 'nfttracker_app' ]::TEXT[];
+  IF __old_name IS NOT NULL THEN
+    RAISE EXCEPTION 'Application % in hafd.applications holds context nfttracker_app, which nft_tracker now registers as nft_tracker. Replay from scratch, or run SELECT hive.app_unregister(''%''); and reinstall', __old_name, __old_name;
+  END IF;
+END
+$$;
+
+SELECT hive.app_register( 'nft_tracker', ARRAY[ 'nfttracker_app' ]::hive.contexts_group, 'nfttracker_app.process_blocks' );
 
 RESET ROLE;

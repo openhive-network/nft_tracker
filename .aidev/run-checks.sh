@@ -16,7 +16,8 @@
 #   - install         scripts/install_app.sh into the stack's haf_block_log
 #                     (NFTTRACKER_TEST_DB_HOST, default `haf`) through
 #                     install_with_app_lock.py (CI's install_app step); the context
-#                     and the version row must exist
+#                     and the version row must exist, and on a HAF with the
+#                     application registry the context's only row is `nft_tracker`
 #   - regression      ./regress.sh, CI's regression_tests job: pg_regress over every
 #                     tests/regression/sql/test_*.sql, each in a fresh HAF database
 #                     seeded with mock blocks; one junit case per test in regression.xml
@@ -24,10 +25,22 @@
 #                     database, install, the mock data, block processing, PostgREST,
 #                     the tavern files); one junit case per test in api.xml
 #   - reinstall       scripts/install_app.sh again over the installed schema (an
-#                     upgrade in place); the context must survive
+#                     upgrade in place), paused in the registry; the context and
+#                     the paused flag must survive
 #   - uninstall       scripts/uninstall_app.sh; the context and schemas must be gone;
 #                     then install again from scratch
+#   - registry-old-name in a throwaway HAF database, the context registered under
+#                     the old name `nfttracker_app`: the install must fail naming
+#                     it, and leave that row as it was
+#   - sync            in a throwaway HAF database seeded with tests/api_tests'
+#                     mock blocks, scripts/process_blocks.sh (haf_app_driver.py
+#                     --app=nft_tracker) processes them all
+#   - entry-dropped   in a throwaway HAF database, with the registered entry
+#                     procedure dropped, scripts/process_blocks.sh is refused the
+#                     `nft_tracker` lock ("reinstall the application"); skipped on
+#                     a HAF before haf#403
 #
+# A step that exits 77 is skipped, its log's last `SKIP: ` line the reason.
 # The steps from install on need the HAF stack (.aidev/test-stack.compose.yml).
 # tests/regression's Makefile and pg_regress options name localhost:5432, so those
 # steps forward it to the stack's HAF with socat. Reports go to
@@ -41,6 +54,8 @@ rm -rf "$out"; mkdir -p "$out"
 cases="$out/cases.tsv"; : > "$cases"
 
 SCHEMA=nfttracker_app
+APP=nft_tracker
+SKIP=77
 DB_HOST="${NFTTRACKER_TEST_DB_HOST:-haf}"
 ADMIN_URL="postgresql://haf_admin@$DB_HOST:5432/haf_block_log"
 API_PORT=18080
@@ -50,6 +65,8 @@ status=0
 record() {
     if [ "$3" -eq 0 ]; then
         printf 'case\t%s\tpass\t%s\t\n' "$2" "$4" >> "$1"
+    elif [ "$3" -eq "$SKIP" ]; then
+        printf 'case\t%s\tskip\t%s\t%s\n' "$2" "$4" "$(grep '^SKIP: ' "$5" | tail -n 1)" >> "$1"
     else
         printf 'case\t%s\tfail\t%s\texit %s\t%s\n' "$2" "$4" "$3" "$5" >> "$1"
     fi
@@ -60,7 +77,11 @@ step() {
     local log="$out/$name.log" t0=$SECONDS rc=0
     echo "== $name" >&2
     "$@" > "$log" 2>&1 < /dev/null || rc=$?
-    [ "$rc" -eq 0 ] || { status=1; tail -40 "$log" >&2; }
+    if [ "$rc" -eq "$SKIP" ]; then
+        grep '^SKIP: ' "$log" | tail -n 1 >&2
+    elif [ "$rc" -ne 0 ]; then
+        status=1; tail -40 "$log" >&2
+    fi
     record "$cases" "$name" "$rc" "$((SECONDS - t0))" "$log"
 }
 
@@ -103,6 +124,10 @@ stack_pins() {
 
 q() { psql "$ADMIN_URL" -v ON_ERROR_STOP=on -X "$@"; }
 
+has_registry() {
+    [ "$(psql "$1" -X -Atc "select to_regclass('hafd.applications') is not null")" = t ]
+}
+
 # localhost:5432 -> the stack's HAF, for the project's own scripts that name localhost.
 forward=""
 start_forward() {
@@ -126,8 +151,17 @@ cleanup() {
 trap cleanup EXIT
 
 check_installed() {
+    local rows
     q -Atc "select hive.app_context_exists('$SCHEMA')" | grep -qx t || { echo "context $SCHEMA does not exist"; return 1; }
     echo "version: $(q -Atc "select git_hash from $SCHEMA.version")"
+    if ! has_registry "$ADMIN_URL"; then
+        echo "no HAF application registry (older than haf#341): registration not checked"
+        return 0
+    fi
+    # Under the lock name, where HAF's lock helpers look it up (haf#403)
+    rows="$(q -Atc "select string_agg(name, ',' order by name) from hafd.applications where contexts @> array['$SCHEMA']")" || return 1
+    [ "$rows" = "$APP" ] || { echo "registry rows holding $SCHEMA: '$rows', expected only $APP"; return 1; }
+    echo "registered as $APP"
 }
 
 install() {
@@ -143,7 +177,14 @@ install() {
 }
 
 reinstall() {
-    install
+    local paused
+    has_registry "$ADMIN_URL" || { install; return; }
+    q -c "SELECT hive.app_pause('$APP')" || return 1
+    install || return 1
+    paused="$(q -Atc "select paused from hafd.applications where name = '$APP'")" || return 1
+    q -c "SELECT hive.app_resume('$APP')" || return 1
+    [ "$paused" = t ] || { echo "the reinstall lost $APP's paused flag (paused: '$paused')"; return 1; }
+    echo "$APP stayed paused"
 }
 
 uninstall() {
@@ -153,6 +194,105 @@ uninstall() {
     left="$(q -Atc "select count(*) from pg_namespace where nspname in ('$SCHEMA','nfttracker_backend','nfttracker_endpoints')")" || return 1
     [ "$left" = 0 ] || { echo "$left nft_tracker schemas survived the uninstall"; return 1; }
     install
+}
+
+# with_fresh_db NAME FUNCTION: FUNCTION <url> in a throwaway HAF database NAME,
+# dropped afterwards whatever FUNCTION returns
+with_fresh_db() {
+    local db="$1" fn="$2" rc=0 url
+    start_forward || return 1
+    url="postgresql://haf_admin@localhost:5432/$db"
+    scripts/setup_db.sh --haf-db-name="$db" --haf-db-admin=haf_admin --host=localhost --port=5432 || return 1
+    "$fn" "$url" || rc=$?
+    # The database's objects belong to the app's roles, which uninstall drops.
+    psql "postgresql://haf_admin@localhost:5432/postgres" -X -c "DROP DATABASE IF EXISTS $db WITH (FORCE)" || rc=1
+    return "$rc"
+}
+
+registry_row() {
+    psql "$1" -X -Atc "select name, contexts, process_procedure, paused from hafd.applications where name = '$2'"
+}
+
+old_name_case() {
+    local url="$1" before after out rc=0
+    has_registry "$url" || { echo "SKIP: this HAF has no application registry (older than haf#341)"; return "$SKIP"; }
+    bash scripts/install_app.sh --postgres-url="$url" || return 1
+    # The registration an install from before the rename left
+    psql "$url" -X -v ON_ERROR_STOP=on -c "SET ROLE nfttracker_owner" \
+        -c "SELECT hive.app_unregister('$APP')" \
+        -c "SELECT hive.app_register('$SCHEMA', ARRAY['$SCHEMA']::hive.contexts_group, '$SCHEMA.process_blocks')" \
+        -c "SELECT hive.app_pause('$SCHEMA')" || return 1
+    before="$(registry_row "$url" "$SCHEMA")"
+    out="$(bash scripts/install_app.sh --postgres-url="$url" 2>&1)" || rc=$?
+    echo "$out"
+    [ "$rc" -ne 0 ] || { echo "the install succeeded over a row named $SCHEMA"; return 1; }
+    if ! grep -qF "Application $SCHEMA in hafd.applications holds context $SCHEMA" <<<"$out" \
+        || ! grep -qF "Replay from scratch, or run SELECT hive.app_unregister('$SCHEMA'); and reinstall" <<<"$out"; then
+        echo "the install failed without naming the row $SCHEMA and the remedy"; return 1
+    fi
+    after="$(registry_row "$url" "$SCHEMA")"
+    if [ -z "$before" ] || [ "$before" != "$after" ]; then
+        echo "row $SCHEMA changed: '$before' -> '$after'"; return 1
+    fi
+    [ -z "$(registry_row "$url" "$APP")" ] || { echo "a row $APP appeared"; return 1; }
+    echo "install refused the row $SCHEMA (exit $rc) and left it unchanged"
+}
+
+registry_old_name() {
+    with_fresh_db nft_registry_test old_name_case
+}
+
+# scripts/process_blocks.sh as the production image runs it, as nfttracker_owner
+process_blocks_as_owner() {
+    local url="$1"; shift
+    command -v haf_app_driver.py >/dev/null || { echo "haf_app_driver.py is not on PATH"; return 1; }
+    # The driver's psycopg2 is in ccc's venv
+    [ -d /python_venv/bin ] && PATH="/python_venv/bin:$PATH"
+    timeout 120 bash scripts/process_blocks.sh --postgres-url="${url/haf_admin@/nfttracker_owner@}" "$@"
+}
+
+sync_case() {
+    local url="$1" top current types out rc=0
+    bash scripts/install_app.sh --postgres-url="$url" || return 1
+    psql "$url" -v ON_ERROR_STOP=1 -X -q -f tests/setup.sql -f tests/prelude.sql -f tests/api_tests/mock_data.sql || return 1
+    top="$(psql "$url" -X -Atc "select max(num) from hafd.blocks")" || return 1
+    out="$(process_blocks_as_owner "$url" --stop-at-block="$top" 2>&1)" || rc=$?
+    echo "$out"
+    [ "$rc" -eq 0 ] || { echo "process_blocks.sh exited $rc"; return 1; }
+    grep -qF "application '$APP'" <<<"$out" || { echo "haf_app_driver.py did not run application $APP"; return 1; }
+    current="$(psql "$url" -X -Atc "select hive.app_get_current_block_num('$SCHEMA')")" || return 1
+    types="$(psql "$url" -X -Atc "select count(*) from $SCHEMA.types")" || return 1
+    [ "$current" -ge "$top" ] || { echo "processed up to block $current, expected $top"; return 1; }
+    [ "$types" -eq 6 ] || { echo "$types NFT types after processing, expected the mock data's 6"; return 1; }
+    echo "processed blocks up to $current under $APP: $types NFT types"
+}
+
+sync_blocks() {
+    with_fresh_db nft_sync_test sync_case
+}
+
+entry_dropped_case() {
+    local url="$1" out rc=0
+    if [ "$(psql "$url" -X -Atc "select to_regprocedure('hive._missing_app_process_procedure(text)') is not null")" != t ]; then
+        echo "SKIP: this HAF predates haf#403 (no hive._missing_app_process_procedure), so it does not refuse the lock"
+        return "$SKIP"
+    fi
+    bash scripts/install_app.sh --postgres-url="$url" || return 1
+    psql "$url" -X -v ON_ERROR_STOP=on -c "SET ROLE nfttracker_owner" \
+        -c "DROP PROCEDURE $SCHEMA.process_blocks(hive.blocks_range)" || return 1
+    out="$(process_blocks_as_owner "$url" 2>&1)" || rc=$?
+    echo "$out"
+    if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ] \
+        && grep -q "Cannot take block-processor lock on $APP: .*reinstall the application" <<<"$out"; then
+        echo "HAF refused the $APP lock with the entry procedure dropped"
+        return 0
+    fi
+    echo "process_blocks.sh was not refused the $APP lock (exit $rc)"
+    return 1
+}
+
+entry_dropped() {
+    with_fresh_db nft_entry_dropped_test entry_dropped_case
 }
 
 # CI's regression_tests job runs ./regress.sh in the HAF container; here it runs in
@@ -210,6 +350,9 @@ for s in "$@"; do
         api) step api api "$out/api.xml" ;;
         reinstall) step reinstall reinstall ;;
         uninstall) step uninstall uninstall ;;
+        registry-old-name) step registry-old-name registry_old_name ;;
+        sync) step sync sync_blocks ;;
+        entry-dropped) step entry-dropped entry_dropped ;;
         *) echo "unknown step: $s" >&2; exit 2 ;;
     esac
 done

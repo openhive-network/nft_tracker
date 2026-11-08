@@ -15,6 +15,8 @@
 #   + /usr/local/bin/install_with_app_lock.py from the psql image the project
 #     Dockerfile's PSQL_CLIENT_VERSION names, so `install` takes install_app.sh's
 #     advisory-lock path as the application image does
+#   + /usr/local/bin/haf_app_driver.py from the same image, so `sync` and
+#     `entry-dropped` run scripts/process_blocks.sh's driver path
 #
 # BASE_IMAGE's default is the followed tag, for .aidev/runtime/build.sh's seed build.
 # See .aidev/README.md.
@@ -32,6 +34,7 @@ RUN PG_MAJOR="$(psql --version | sed 's/^psql (PostgreSQL) \([0-9]*\).*/\1/')" \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=psql /usr/local/bin/install_with_app_lock.py /usr/local/bin/install_with_app_lock.py
+COPY --from=psql /usr/local/bin/haf_app_driver.py /usr/local/bin/haf_app_driver.py
 
 ENV HOME=/tmp PYTHONDONTWRITEBYTECODE=1
 ENTRYPOINT []
