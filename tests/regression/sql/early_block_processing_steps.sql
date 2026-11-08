@@ -57,14 +57,14 @@ $$;
 CREATE VIEW nft_index_registrations AS
 SELECT count(*) AS registered
 FROM hafd.indexes_constraints
-WHERE index_constraint_name ~ '^hive_operations_custom_json_types_[0-9_]+_idx$'
+WHERE index_constraint_name ~ '^hive_operations_custom_json_(types|block_num)_[0-9_]+_idx$'
   AND contexts @> ARRAY[hive.get_context_id('nfttracker_app')];
 
 -- hived is in its massive sync, which reports irreversible blocks by
 -- hive.end_massive_sync() and has not written the 'NFT' type yet
 DELETE FROM hafd.events_queue WHERE id > 0;
 SELECT hive.initialize_extension_data();
-DELETE FROM hafd.indexes_constraints WHERE index_constraint_name ~ '^hive_operations_custom_json_types_[0-9_]+_idx$';
+DELETE FROM hafd.indexes_constraints WHERE index_constraint_name ~ '^hive_operations_custom_json_(types|block_num)_[0-9_]+_idx$';
 DELETE FROM hafd.custom_json_types WHERE custom_json_id = 'NFT';
 SET client_min_messages = warning;
 
