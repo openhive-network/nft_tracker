@@ -119,10 +119,11 @@ sql_registered() {
 ci_config() {
     local py=python3 body out errors
     python3 -c 'import yaml' 2>/dev/null || py=/python_venv/bin/python3
-    "$py" .aidev/ci_yaml_check.py .gitlab-ci.yml || return 1
-    # Only GitLab can resolve the includes (an `extends` of a template's job in a
-    # file not included); it needs the network and a token, so this part is optional,
-    # and only a lint answer fails the step: no answer says nothing of the config.
+    "$py" .aidev/ci_yaml_check.py scripts .gitlab-ci.yml || return 1
+    ci_includes "$py" || return 1
+    # GitLab's lint also resolves template and other-project includes; it needs a
+    # token, so this part is optional, and only a lint answer fails the step: no
+    # answer says nothing of the config.
     if [ -z "${GITLAB_TOKEN:-}" ]; then
         echo "NOTE: GITLAB_TOKEN is not set: GitLab's CI lint is not run"
         return 0
@@ -148,6 +149,43 @@ ci_config() {
         return 1
     fi
     echo "GitLab CI lint: no config errors"
+}
+
+# ci_includes PY: fetch the common-ci-configuration files .gitlab-ci.yml includes
+# (and their own local includes) without a token, and check that every extends and
+# !reference target of a job in any of them is defined in one of them. Only a
+# definite 404 for an included file fails; no answer leaves the check unrun.
+ci_includes() {
+    local py="$1" dir list kind ref file out n=0 seen=" " cur path
+    local -a pending=(".gitlab-ci.yml|") files=(.gitlab-ci.yml .gitlab-ci.yml)
+    dir="$(mktemp -d)"
+    while [ "${#pending[@]}" -gt 0 ]; do
+        cur="${pending[0]}"; pending=("${pending[@]:1}")
+        path="${cur%%|*}"; ref="${cur#*|}"
+        list="$("$py" .aidev/ci_yaml_check.py includes "$path" ${ref:+"$ref"})" || { rm -rf "$dir"; return 1; }
+        while IFS=$'\t' read -r kind ref file; do
+            case "$kind" in
+                skip) echo "include not resolved: $ref" ;;
+                fetch)
+                    [[ "$seen" == *" $ref:$file "* ]] && continue
+                    seen+="$ref:$file "
+                    n=$((n + 1)); out="$dir/$n.yml"
+                    http_request "$out" "https://gitlab.syncad.com/hive/common-ci-configuration/-/raw/$ref$file"
+                    case "$http_cause:$http_status" in
+                        :200) files+=("$out" "hive/common-ci-configuration@$ref:$file"); pending+=("$out|$ref") ;;
+                        :404)
+                            echo "MISSING: included file hive/common-ci-configuration@$ref:$file is not there (HTTP 404)"
+                            rm -rf "$dir"; return 1 ;;
+                        *)
+                            echo "NOTE: gitlab.syncad.com gave no answer for hive/common-ci-configuration@$ref:$file (${http_cause:-HTTP $http_status}): extends and !reference targets are not checked"
+                            rm -rf "$dir"; return 0 ;;
+                    esac ;;
+            esac
+        done <<< "$list"
+    done
+    echo "resolved $n included files from hive/common-ci-configuration"
+    "$py" .aidev/ci_yaml_check.py extends "${files[@]}" || { rm -rf "$dir"; return 1; }
+    rm -rf "$dir"
 }
 
 # CI builds its regression image as haf-test:<HAF tag>-v2 over the HAF develop image
