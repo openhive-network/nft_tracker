@@ -55,6 +55,7 @@ nft_tracker/
 │   │   ├── expected/            # Expected outputs
 │   │   └── launcher.sh          # Test runner
 │   ├── api_tests/               # Tavern REST API tests
+│   ├── rewriter/                # Rewriter image tests (docker compose + pytest)
 │   ├── prelude.sql              # Test helper functions
 │   └── setup.sql                # Test setup
 ├── Dockerfile                   # Main app container
@@ -109,6 +110,9 @@ nft_tracker/
 # Run API tests (Tavern)
 cd tests/api_tests && ./run_api_tests.sh
 
+# Run the rewriter tests (builds Dockerfile.rewriter unless REWRITER_IMAGE is set)
+tests/rewriter/run.sh
+
 # Update test baselines after changes
 cd tests/regression && make refresh && make gitadd
 ```
@@ -139,6 +143,7 @@ docker build -t nft_tracker-rewriter:latest -f Dockerfile.rewriter .
 ### API
 - `endpoints/endpoint_schema.sql` - OpenAPI 3.1.0 spec (embedded in SQL comments)
 - `rewrite_rules.conf` - Nginx URL rewrites (REST paths to PostgREST RPC)
+- `rpc_arguments.lua` - Each endpoint function's declared parameters; the rewriter's `hive.rpc_form` module (common-ci-configuration nginx image) sends these in a form POST body so values like `not.x` reach the function as arguments. Regenerate it with `rewrite_rules.conf` (`cd scripts && ./openapi_rewrite.sh`)
 
 ### Configuration
 - `docker/nft_tracker_nginx.conf.template` - Nginx config template
@@ -205,6 +210,10 @@ SWAGGER_URL       # default: localhost
 - `test_transfer.sql` - Ownership transfer
 - `test_soulbind.sql` - Soulbinding
 - And 12 more covering edge cases and error conditions
+
+**Rewriter Tests** (`tests/rewriter/`):
+- The rewriter image in front of PostgREST and HAF over `tests/api_tests/mock_data.sql`; operator-prefixed arguments, PostgREST parameters, HEAD framing
+- Endpoint functions reached through the rewriter must stay STABLE: PostgREST runs a POST to a VOLATILE function READ WRITE
 
 **API Tests** (`tests/api_tests/`):
 - Pagination tests for types and instances
