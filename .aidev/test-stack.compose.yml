@@ -1,21 +1,22 @@
 # The service stack AIDEV starts for the slots that install nft_tracker (every suite
 # in .aidev/project.yaml without `stack: false`): one HAF PostgreSQL with no hived,
 # exactly as CI's regression_tests job starts it — CI's own test image
-# (hive/nft_tracker/haf-test:<HAF_VERSION>-v2, built from docker/Dockerfile.test over
-# HAF at .gitlab-ci.yml's HAF_VERSION) with `--skip-hived` and trust access from the
-# stack network. Nothing is replayed: every test seeds its own mock blocks and
+# (hive/nft_tracker/haf-test:<HAF tag>-v2, built from docker/Dockerfile.test over the
+# HAF develop image .gitlab-ci.yml's find_haf_image resolves) with `--skip-hived` and
+# trust access from the stack network. Nothing is replayed: every test seeds its own mock blocks and
 # operations into a database of its own (tests/setup.sql, tests/prelude.sql).
 #
 # The checks run in the runtime image (.aidev/runtime/), join this stack's network,
 # reach the database as `haf` and install the candidate's own SQL, so no nft_tracker
 # image is built per change.
 #
-# Pin: the haf-test tag CI resolves for HAF_VERSION ee3bc298, as repo:tag@sha256.
-# Re-pin it (and the runtime image's FROM) when .gitlab-ci.yml's HAF_VERSION moves
-# (.aidev/README.md); the `stack-pins` check fails until both match.
+# Pin: haf-test over HAF develop 94b77653, as repo:tag@sha256. CI floats with HAF
+# develop and a gate must run a digest-pinned image, so re-pin it when HAF develop
+# moves past this tag (.aidev/README.md). The `stack-pins` check fails unless the pin
+# has that form and its tag and digest are in the registry.
 services:
   haf:
-    image: registry.gitlab.syncad.com/hive/nft_tracker/haf-test:ee3bc298-v2@sha256:562017e0b04b945dddf15d0e667f21e3ca56e6f0c7844f7ea28df900f451799f
+    image: registry.gitlab.syncad.com/hive/nft_tracker/haf-test:94b77653-v2@sha256:ca6318cf78e8a7baf459949f207e58383d12f7a53903936a5276e2aa8056d371
     command: ["--skip-hived"]
     environment:
       DATADIR: /home/hived/datadir

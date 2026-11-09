@@ -6,7 +6,8 @@
 #   tests/rewriter/run.sh [pytest args...]
 #
 # REWRITER_IMAGE  the rewriter image to test (default: built from Dockerfile.rewriter)
-# HAF_IMAGE       default: $HAF_REGISTRY:$HAF_VERSION of .gitlab-ci.yml
+# HAF_IMAGE       default: the haf-test image .aidev/test-stack.compose.yml pins (HAF
+#                 develop as the AIDEV stack runs it; CI passes find_haf_image's)
 # RESULTS_DIR     where junit.xml and the stack's logs go (default: a new temporary
 #                 directory)
 set -euo pipefail
@@ -16,12 +17,8 @@ root="$(cd "$here/../.." && pwd)"
 results="${RESULTS_DIR:-$(mktemp -d)}"
 mkdir -p "$results"
 
-ci_variable() {
-    sed -n "s/^ *$1: *\"\{0,1\}\([^\"]*\)\"\{0,1\} *$/\1/p" "$root/.gitlab-ci.yml" | head -1
-}
-
 project="nft-rewriter-test-$$"
-HAF_IMAGE="${HAF_IMAGE:-$(ci_variable HAF_REGISTRY):$(ci_variable HAF_VERSION)}"
+HAF_IMAGE="${HAF_IMAGE:-$(grep -o 'registry[^ "]*/haf-test:[^ "]*' "$root/.aidev/test-stack.compose.yml" | head -1)}"
 PSQL_IMAGE="registry.gitlab.syncad.com/hive/common-ci-configuration/psql:$(sed -n 's/^ARG PSQL_CLIENT_VERSION=//p' "$root/Dockerfile")"
 built_image=""
 if [ -z "${REWRITER_IMAGE:-}" ]; then
