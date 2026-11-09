@@ -36,7 +36,7 @@ _GLOBAL_KEYWORDS = frozenset({
 
 
 class _Reference:
-    def __init__(self, path: list[Any]):
+    def __init__(self, path: list[Any]) -> None:
         self.path = path
 
 
