@@ -11,6 +11,11 @@
 #                     at the default severity on .aidev/'s own scripts
 #   - sql-registered  every .sql file under db/ and endpoints/ is applied by
 #                     scripts/install_app.sh (a file it misses never reaches a database)
+#   - ci-config       every script/before_script/after_script item of .gitlab-ci.yml
+#                     is a string (.aidev/ci_yaml_check.py); and, with GITLAB_TOKEN
+#                     set and gitlab.syncad.com reachable, GitLab's CI lint (a dry
+#                     run on aidev/integration, which also resolves the includes)
+#                     reports no error but the workflow:rules notice
 #   - stack-pins      the HAF test image of .aidev/test-stack.compose.yml is pinned as
 #                     hive/nft_tracker/haf-test:<HAF tag>-v2@sha256:<digest>, and that
 #                     tag and digest are in the registry (when it is reachable: the
@@ -107,6 +112,33 @@ sql_registered() {
     done < <(find db endpoints -name '*.sql' | sort)
     [ "$missing" -eq 0 ] && echo "every .sql file under db/ and endpoints/ is applied"
     return "$missing"
+}
+
+ci_config() {
+    local py=python3 body rc=0 errors
+    python3 -c 'import yaml' 2>/dev/null || py=/python_venv/bin/python3
+    "$py" .aidev/ci_yaml_check.py .gitlab-ci.yml || return 1
+    # Only GitLab can resolve the includes (an `extends` of a template's job in a
+    # file not included); it needs the network and a token, so this part is optional.
+    if [ -z "${GITLAB_TOKEN:-}" ]; then
+        echo "NOTE: GITLAB_TOKEN is not set: GitLab's CI lint is not run"
+        return 0
+    fi
+    body="$(jq -n --rawfile c .gitlab-ci.yml '{content: $c, dry_run: true, ref: "aidev/integration"}')" || return 1
+    body="$(curl -fsS -X POST -H "PRIVATE-TOKEN: $GITLAB_TOKEN" -H 'Content-Type: application/json' \
+        --data "$body" "https://gitlab.syncad.com/api/v4/projects/hive%2Fnft_tracker/ci/lint")" || rc=$?
+    if [ "$rc" -eq 6 ] || [ "$rc" -eq 7 ]; then
+        echo "NOTE: gitlab.syncad.com is unreachable from here (curl exit $rc): GitLab's CI lint is not run"
+        return 0
+    fi
+    [ "$rc" -eq 0 ] || { echo "GitLab's CI lint request failed (curl exit $rc)"; return 1; }
+    # A dry-run push on aidev/integration is skipped by the workflow rules.
+    errors="$(printf '%s' "$body" | jq -r '.errors[] | select(startswith("The pipeline did not run") | not)')" || return 1
+    if [ -n "$errors" ]; then
+        printf 'GitLab CI lint: %s\n' "$errors"
+        return 1
+    fi
+    echo "GitLab CI lint: no config errors"
 }
 
 # CI builds its regression image as haf-test:<HAF tag>-v2 over the HAF develop image
@@ -390,6 +422,7 @@ for s in "$@"; do
     case "$s" in
         shellcheck) step shellcheck run_shellcheck ;;
         sql-registered) step sql-registered sql_registered ;;
+        ci-config) step ci-config ci_config ;;
         stack-pins) step stack-pins stack_pins ;;
         install) step install install ;;
         regression) step regression regression "$out/regression.xml" ;;

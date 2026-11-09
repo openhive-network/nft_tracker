@@ -230,7 +230,7 @@ rewriter_tests:
     docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     echo -e "\e[0Ksection_end:$(date +%s):login\r\e[0K"
   script:
-  - echo "Using HAF image: ${HAF_IMAGE_NAME}"
+  - 'echo "Using HAF image: ${HAF_IMAGE_NAME}"'
   - HAF_IMAGE="${HAF_IMAGE_NAME}" REWRITER_IMAGE="${CI_REGISTRY_IMAGE}/postgrest-rewriter:${CI_COMMIT_SHORT_SHA}" tests/rewriter/run.sh -v
   artifacts:
     when: always
