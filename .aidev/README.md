@@ -19,7 +19,7 @@ the failure body. `regression` also writes one case per pg_regress test
 |---|---|
 | `shellcheck` | ShellCheck at error severity on every `*.sh` outside `.aidev/` (CI runs no linter; `scripts/` carries warnings today), and at its default severity on `.aidev/`'s own scripts |
 | `sql-registered` | every `.sql` file under `db/` and `endpoints/` is applied by `scripts/install_app.sh` |
-| `stack-pins` | `.aidev/test-stack.compose.yml` pins `hive/nft_tracker/haf-test:<HAF_VERSION>-v2@sha256:…` for `.gitlab-ci.yml`'s `HAF_VERSION` (reads only the tree) |
+| `stack-pins` | `.aidev/test-stack.compose.yml` pins `hive/nft_tracker/haf-test:<hex HAF tag>-v2@sha256:<64 hex>`, and that tag and digest are in `registry.gitlab.syncad.com` (queried anonymously; in the stackless slots, which run without a network, only the form is checked) |
 | `install` | `scripts/install_app.sh` into the stack's `haf_block_log` (CI's `install_app` step), through `install_with_app_lock.py`; the context `nfttracker_app` and the version row must exist, every function in `nfttracker_endpoints` must be STABLE or IMMUTABLE and `root()` must run as `nfttracker_user` in a READ ONLY transaction (`.aidev/endpoint_volatility_check.sql`), and on a HAF with the application registry the context's only row in `hafd.applications` is `nft_tracker` |
 | `regression` | `./regress.sh`, CI's `regression_tests`: pg_regress over every `tests/regression/sql/test_*.sql`, each in a fresh HAF database seeded with mock blocks |
 | `reinstall` | `scripts/install_app.sh` again over the installed schema (an upgrade in place), with `nft_tracker` paused in the registry; it must stay paused |
@@ -51,8 +51,8 @@ whatever bug the change has as the expected value.
 ## The test stack (`test-stack.compose.yml`)
 
 One service, `haf`: CI's own regression-test image
-(`hive/nft_tracker/haf-test:<HAF_VERSION>-v2`, built by CI from `docker/Dockerfile.test`
-over HAF at `HAF_VERSION`) started with `--skip-hived` and trust access from the stack
+(`hive/nft_tracker/haf-test:<HAF tag>-v2`, built by CI from `docker/Dockerfile.test`
+over the HAF `develop` image its `find_haf_image` job resolves) started with `--skip-hived` and trust access from the stack
 network, exactly as the `regression_tests` job starts it. Nothing is replayed.
 
 To run the stack checks by hand:
@@ -65,9 +65,21 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/w" -w /w --network nft-chec
 docker compose -p nft-checks -f .aidev/test-stack.compose.yml down -v
 ```
 
-When `.gitlab-ci.yml`'s `HAF_VERSION` moves, CI builds the new haf-test tag on its next
-`regression_tests` run; then re-pin the compose file's `haf` image to that tag's digest.
-`stack-pins` fails until it matches.
+CI floats with HAF `develop` (`find_haf_image`, common-ci-configuration's
+`.find_haf_image`), but a gate must run a digest-pinned image, so the stack pins one
+haf-test tag. When HAF `develop` moves past the tag the stack runs, re-pin: take the tag
+`find_haf_image` resolves (`HAF_UPSTREAM_TAG` in its log), and if
+`hive/nft_tracker/haf-test:<tag>-v2` is not in the registry yet (CI builds it on its
+next `regression_tests` run), build and push it as CI does:
+
+```bash
+docker build -t registry.gitlab.syncad.com/hive/nft_tracker/haf-test:<tag>-v2 \
+    --build-arg HAF_IMAGE=registry.gitlab.syncad.com/hive/haf:<tag> -f docker/Dockerfile.test .
+docker push registry.gitlab.syncad.com/hive/nft_tracker/haf-test:<tag>-v2
+```
+
+then put the pushed `…:<tag>-v2@sha256:<digest>` into the compose file's `haf` image.
+`stack-pins` fails while the pin is malformed or not in the registry.
 
 ## The test runtime image (`runtime/`)
 

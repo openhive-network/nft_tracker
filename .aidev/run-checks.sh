@@ -11,8 +11,10 @@
 #                     at the default severity on .aidev/'s own scripts
 #   - sql-registered  every .sql file under db/ and endpoints/ is applied by
 #                     scripts/install_app.sh (a file it misses never reaches a database)
-#   - stack-pins      the HAF test image of .aidev/test-stack.compose.yml is the
-#                     haf-test tag for .gitlab-ci.yml's HAF_VERSION (reads only the tree)
+#   - stack-pins      the HAF test image of .aidev/test-stack.compose.yml is pinned as
+#                     hive/nft_tracker/haf-test:<HAF tag>-v2@sha256:<digest>, and that
+#                     tag and digest are in the registry (when it is reachable: the
+#                     stackless slots run without a network)
 #   - install         scripts/install_app.sh into the stack's haf_block_log
 #                     (NFTTRACKER_TEST_DB_HOST, default `haf`) through
 #                     install_with_app_lock.py (CI's install_app step); the context
@@ -107,22 +109,39 @@ sql_registered() {
     return "$missing"
 }
 
-# CI builds its regression image as haf-test:${HAF_VERSION}-v2; the stack must run
-# that same tag. (The runtime image follows ccc's haf-app-test-runner instead.)
+# CI builds its regression image as haf-test:<HAF tag>-v2 over the HAF develop image
+# find_haf_image resolves, which floats; a gate must run a digest-pinned image, so the
+# stack pins one such tag (re-pinned when HAF develop moves on, .aidev/README.md).
+# (The runtime image follows ccc's haf-app-test-runner instead.)
 stack_pins() {
-    local version want f=.aidev/test-stack.compose.yml
-    version="$(sed -n 's/^ *HAF_VERSION: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' .gitlab-ci.yml)"
-    if [ -z "$version" ] || [ "$(printf '%s\n' "$version" | wc -l)" -ne 1 ]; then
-        echo "expected one HAF_VERSION in .gitlab-ci.yml, found '$version'"
+    local f=.aidev/test-stack.compose.yml repo=hive/nft_tracker/haf-test
+    local registry=registry.gitlab.syncad.com pin tag digest token ref rc=0
+    pin="$(grep -o "$registry/$repo:[^ \"]*" "$f")"
+    if [ "$(printf '%s\n' "$pin" | grep -c .)" -ne 1 ] \
+        || ! printf '%s\n' "$pin" | grep -qx "$registry/$repo:[0-9a-f]\{8,40\}-v2@sha256:[0-9a-f]\{64\}"; then
+        echo "expected one $registry/$repo:<hex tag>-v2@sha256:<digest> in $f, found '$pin'"
         return 1
     fi
-    want="registry.gitlab.syncad.com/hive/nft_tracker/haf-test:$version-v2@sha256:"
-    echo ".gitlab-ci.yml HAF_VERSION: $version"
-    if ! grep -q "${want}[0-9a-f]\{64\}" "$f"; then
-        echo "STALE: $f does not pin ${want}<digest>: re-pin it (.aidev/README.md)"
-        return 1
+    echo "$f: $pin"
+    tag="${pin#*:}"; tag="${tag%%@*}"
+    digest="${pin#*@}"
+    # The stackless slots run without a network: there only the form is checked, and
+    # the slots with the stack (which pull this image) check the registry.
+    token="$(curl -fsS "https://gitlab.syncad.com/jwt/auth?service=container_registry&scope=repository:$repo:pull")" || rc=$?
+    if [ "$rc" -eq 6 ] || [ "$rc" -eq 7 ]; then
+        echo "NOTE: gitlab.syncad.com is unreachable from here (curl exit $rc): the pin's form is checked, its presence in the registry is not"
+        return 0
     fi
-    echo "$f: $(grep -o 'hive/nft_tracker/haf-test:[^ "]*' "$f" | head -1)"
+    token="$(printf '%s' "$token" | jq -er .token)" || { echo "could not get a pull token for $repo"; return 1; }
+    for ref in "$tag" "$digest"; do
+        if ! curl -fsSI -o /dev/null -H "Authorization: Bearer $token" \
+            -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json' \
+            "https://$registry/v2/$repo/manifests/$ref"; then
+            echo "MISSING: $registry/$repo $ref is not in the registry: build and push it, then re-pin (.aidev/README.md)"
+            return 1
+        fi
+        echo "in the registry: $repo $ref"
+    done
 }
 
 q() { psql "$ADMIN_URL" -v ON_ERROR_STOP=on -X "$@"; }

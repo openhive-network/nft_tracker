@@ -8,11 +8,9 @@ variables:
   DOCKER_BUILDER_TAG: "latest"
   DOCKER_DIND_TAG: "latest"
   IMAGE_REMOVER_TAG: "latest"
-  # HAF image for regression tests.
-  # Pin to a specific version for reproducible CI. Update when HAF
-  # releases schema changes that affect nfttracker (check HAF changelog).
-  HAF_REGISTRY: "registry.gitlab.syncad.com/hive/haf"
-  HAF_VERSION: "ee3bc298"
+  # The HAF image the test jobs run is the latest HAF develop build, resolved by
+  # the find_haf_image job (common-ci-configuration's .find_haf_image) into
+  # HAF_IMAGE_NAME and HAF_UPSTREAM_TAG (dotenv artifact).
   # common-ci-configuration reference for fetching scripts
   COMMON_CI_REF: "develop"
   # Git configuration
@@ -46,10 +44,17 @@ include:
   file:
   - '/templates/base.gitlab-ci.yml'
   - '/templates/docker_image_jobs.gitlab-ci.yml'
+  - '/templates/haf_app_testing.gitlab-ci.yml'
 
 default:
   hooks:
     pre_get_sources_script: !reference [.pre_get_sources_simple, pre_get_sources_script]
+
+find_haf_image:
+  extends: .find_haf_image
+  variables:
+    UPSTREAM_BRANCH: "develop"
+    HAF_PATTERNS_REF: "develop"
 
 build_images:
   extends: .docker_image_builder_job_template
@@ -104,6 +109,8 @@ regression_tests:
   timeout: 15 minutes
   needs:
   - build_images
+  - job: find_haf_image
+    artifacts: true
   before_script:
   - !reference [.docker_image_builder_job_template, before_script]
   - |
@@ -112,20 +119,22 @@ regression_tests:
     echo -e "\e[0Ksection_end:$(date +%s):login\r\e[0K"
   script:
   - |
+    echo "Using HAF image: ${HAF_IMAGE_NAME} (tag ${HAF_UPSTREAM_TAG})"
     # Clean up stale resources from previous runs (runner reuse)
     docker rm -f haf 2>/dev/null || true
     docker network rm nft-test-net 2>/dev/null || true
 
     echo -e "\e[0Ksection_start:$(date +%s):pull[collapsed=true]\r\e[0KPulling test image..."
     # Test image = HAF + postgresql-server-dev + make (for pg_regress).
-    # Built once per HAF_VERSION and cached in the registry.
+    # Built once per HAF tag (find_haf_image's HAF_UPSTREAM_TAG) and cached in the registry.
     # Suffix encodes Dockerfile.test changes; bump when modifying that file.
-    HAF_TEST_IMAGE="${CI_REGISTRY_IMAGE}/haf-test:${HAF_VERSION}-v2"
+    HAF_TEST_IMAGE="${CI_REGISTRY_IMAGE}/haf-test:${HAF_UPSTREAM_TAG}-v2"
+    echo "Using HAF test image: ${HAF_TEST_IMAGE}"
     if ! docker pull "${HAF_TEST_IMAGE}" 2>/dev/null; then
       echo "Test image not found, building..."
       docker build \
         -t "${HAF_TEST_IMAGE}" \
-        --build-arg "HAF_IMAGE=${HAF_REGISTRY}:${HAF_VERSION}" \
+        --build-arg "HAF_IMAGE=${HAF_IMAGE_NAME}" \
         -f docker/Dockerfile.test .
       docker push "${HAF_TEST_IMAGE}"
     fi
@@ -209,6 +218,8 @@ rewriter_tests:
   timeout: 15 minutes
   needs:
   - build_images
+  - job: find_haf_image
+    artifacts: true
   variables:
     RESULTS_DIR: "$CI_PROJECT_DIR/rewriter-results"
   before_script:
@@ -218,7 +229,8 @@ rewriter_tests:
     docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     echo -e "\e[0Ksection_end:$(date +%s):login\r\e[0K"
   script:
-  - REWRITER_IMAGE="${CI_REGISTRY_IMAGE}/postgrest-rewriter:${CI_COMMIT_SHORT_SHA}" tests/rewriter/run.sh -v
+  - echo "Using HAF image: ${HAF_IMAGE_NAME}"
+  - HAF_IMAGE="${HAF_IMAGE_NAME}" REWRITER_IMAGE="${CI_REGISTRY_IMAGE}/postgrest-rewriter:${CI_COMMIT_SHORT_SHA}" tests/rewriter/run.sh -v
   artifacts:
     when: always
     paths:

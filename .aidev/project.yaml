@@ -70,7 +70,8 @@ sandbox:
 # seven gates report on the same evidence while claiming to check seven
 # different things.
 #
-# Lightweight first: lint, the stack pin against CI's HAF_VERSION, then install of
+# Lightweight first: lint, the stack's haf-test pin (its form, and its tag in the
+# registry), then install of
 # the candidate's SQL into the stack's HAF (CI's install_app step), CI's
 # regression_tests (./regress.sh: pg_regress over every tests/regression/sql test,
 # each in a fresh HAF database), and for full and canary an upgrade in place and an
