@@ -83,12 +83,12 @@ sandbox:
 verification:
   quick:
     adapter: command
-    args: [".aidev/run-checks.sh", "quick", "shellcheck", "sql-registered", "stack-pins"]
+    args: [".aidev/run-checks.sh", "quick", "shellcheck", "sql-registered", "ci-config", "stack-pins"]
     stack: false
     artifacts: ["test-results/quick/"]
   full:
     adapter: command
-    args: [".aidev/run-checks.sh", "full", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
+    args: [".aidev/run-checks.sh", "full", "shellcheck", "sql-registered", "ci-config", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
     artifacts: ["test-results/full/"]
   baseline:
     adapter: command
@@ -96,7 +96,7 @@ verification:
     artifacts: ["test-results/baseline/"]
   canary:
     adapter: command
-    args: [".aidev/run-checks.sh", "canary", "shellcheck", "sql-registered", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
+    args: [".aidev/run-checks.sh", "canary", "shellcheck", "sql-registered", "ci-config", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
     artifacts: ["test-results/canary/"]
   # There is no coverage measurement for SQL; `coverage` runs the stackless checks
   # (AIDEV runs it in the post-implementation scan only). `static` and `system`
