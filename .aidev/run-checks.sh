@@ -48,7 +48,8 @@
 #   - entry-dropped   in a throwaway HAF database, with the registered entry
 #                     procedure dropped, scripts/process_blocks.sh is refused the
 #                     `nft_tracker` lock ("reinstall the application"); skipped on
-#                     a HAF before haf#403
+#                     a HAF before haf#403 (neither hive._app_broken_reason nor
+#                     hive._missing_app_process_procedure)
 #
 # A step that exits 77 is skipped, its log's last `SKIP: ` line the reason.
 # The steps from install on need the HAF stack (.aidev/test-stack.compose.yml).
@@ -351,8 +352,10 @@ sync_blocks() {
 
 entry_dropped_case() {
     local url="$1" out rc=0
-    if [ "$(psql "$url" -X -Atc "select to_regprocedure('hive._missing_app_process_procedure(text)') is not null")" != t ]; then
-        echo "SKIP: this HAF predates haf#403 (no hive._missing_app_process_procedure), so it does not refuse the lock"
+    # haf#454 renamed haf#403's hive._missing_app_process_procedure to hive._app_broken_reason
+    if [ "$(psql "$url" -X -Atc "select coalesce(to_regprocedure('hive._app_broken_reason(text)'),
+        to_regprocedure('hive._missing_app_process_procedure(text)')) is not null")" != t ]; then
+        echo "SKIP: this HAF predates haf#403 (neither hive._app_broken_reason nor hive._missing_app_process_procedure), so it does not refuse the lock"
         return "$SKIP"
     fi
     bash scripts/install_app.sh --postgres-url="$url" || return 1
