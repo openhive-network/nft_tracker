@@ -718,7 +718,7 @@ $$;
 begin
   return openapi;
 end
-$_$ language plpgsql;'
+$_$ language plpgsql STABLE;'
             , __swagger_url);
 
         -- Grant execute permission on the root function to nfttracker_user
