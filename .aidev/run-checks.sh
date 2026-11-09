@@ -115,7 +115,7 @@ sql_registered() {
 # (The runtime image follows ccc's haf-app-test-runner instead.)
 stack_pins() {
     local f=.aidev/test-stack.compose.yml repo=hive/nft_tracker/haf-test
-    local registry=registry.gitlab.syncad.com pin tag digest token ref rc=0
+    local registry=registry.gitlab.syncad.com pin tag digest token ref body
     pin="$(grep -o "$registry/$repo:[^ \"]*" "$f")"
     if [ "$(printf '%s\n' "$pin" | grep -c .)" -ne 1 ] \
         || ! printf '%s\n' "$pin" | grep -qx "$registry/$repo:[0-9a-f]\{8,40\}-v2@sha256:[0-9a-f]\{64\}"; then
@@ -126,22 +126,45 @@ stack_pins() {
     tag="${pin#*:}"; tag="${tag%%@*}"
     digest="${pin#*@}"
     # The stackless slots run without a network: there only the form is checked, and
-    # the slots with the stack (which pull this image) check the registry.
-    token="$(curl -fsS "https://gitlab.syncad.com/jwt/auth?service=container_registry&scope=repository:$repo:pull")" || rc=$?
-    if [ "$rc" -eq 6 ] || [ "$rc" -eq 7 ]; then
-        echo "NOTE: gitlab.syncad.com is unreachable from here (curl exit $rc): the pin's form is checked, its presence in the registry is not"
+    # the slots with the stack (which pull this image) check the registry. Only a
+    # definite "not there" fails; a registry that does not answer says nothing of the pin.
+    body="$(mktemp)"
+    registry_get "$body" "https://gitlab.syncad.com/jwt/auth?service=container_registry&scope=repository:$repo:pull"
+    if [ -n "$reg_cause" ] || [ "$reg_status" != 200 ]; then
+        echo "NOTE: no pull token from gitlab.syncad.com (${reg_cause:-HTTP $reg_status}): the pin's form is checked, its presence in the registry is not"
+        rm -f "$body"
         return 0
     fi
-    token="$(printf '%s' "$token" | jq -er .token)" || { echo "could not get a pull token for $repo"; return 1; }
+    token="$(jq -er .token "$body")" || { echo "could not read a pull token for $repo"; rm -f "$body"; return 1; }
+    rm -f "$body"
     for ref in "$tag" "$digest"; do
-        if ! curl -fsSI -o /dev/null -H "Authorization: Bearer $token" \
+        registry_get /dev/null -I -H "Authorization: Bearer $token" \
             -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json' \
-            "https://$registry/v2/$repo/manifests/$ref"; then
-            echo "MISSING: $registry/$repo $ref is not in the registry: build and push it, then re-pin (.aidev/README.md)"
-            return 1
-        fi
-        echo "in the registry: $repo $ref"
+            "https://$registry/v2/$repo/manifests/$ref"
+        case "$reg_cause:$reg_status" in
+            :2??) echo "in the registry: $repo $ref" ;;
+            :404|:401|:403)
+                echo "MISSING: $registry/$repo $ref is not in the registry (HTTP $reg_status): build and push it, then re-pin (.aidev/README.md)"
+                return 1 ;;
+            *)
+                echo "NOTE: $registry gave no answer for $repo $ref (${reg_cause:-HTTP $reg_status}): the pin's form is checked, its presence in the registry is not"
+                return 0 ;;
+        esac
     done
+}
+
+# registry_get OUT CURL_ARGS...: the response body in OUT and its HTTP status in
+# reg_status; reg_cause names why there was no complete answer (a curl exit, or a
+# 5xx/429 the registry may answer differently on retry), empty when there was one.
+registry_get() {
+    local out="$1" rc=0; shift
+    reg_status="$(curl -sS --connect-timeout 5 --max-time 30 -o "$out" -w '%{http_code}' "$@")" || rc=$?
+    reg_cause=""
+    if [ "$rc" -ne 0 ]; then
+        reg_cause="curl exit $rc"
+    elif [ "$reg_status" = 429 ] || [ "${reg_status#5}" != "$reg_status" ]; then
+        reg_cause="HTTP $reg_status"
+    fi
 }
 
 q() { psql "$ADMIN_URL" -v ON_ERROR_STOP=on -X "$@"; }
