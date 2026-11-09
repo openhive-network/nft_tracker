@@ -45,6 +45,7 @@ include:
   - '/templates/base.gitlab-ci.yml'
   - '/templates/docker_image_jobs.gitlab-ci.yml'
   - '/templates/haf_app_testing.gitlab-ci.yml'
+  - '/templates/haf_data_preparation.gitlab-ci.yml'
 
 default:
   hooks:
