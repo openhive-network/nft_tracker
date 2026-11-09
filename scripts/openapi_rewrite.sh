@@ -5,8 +5,9 @@ set -o pipefail
 
 SCRIPTDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 || exit 1; pwd -P )"
 
-# Fetch process_openapi.py from common-ci-configuration if not available locally
-COMMON_CI_REF="${COMMON_CI_REF:-develop}"
+# Fetch process_openapi.py from common-ci-configuration if not available locally.
+# The ref must carry common-ci-configuration#78: older versions write no rpc_arguments.lua.
+COMMON_CI_REF="${COMMON_CI_REF:-1d952fd19118762d0e66f91953e194ff08e69bb0}"
 COMMON_CI_URL="${COMMON_CI_URL:-https://gitlab.syncad.com/hive/common-ci-configuration/-/raw/${COMMON_CI_REF}}"
 PROCESS_OPENAPI="${SCRIPTDIR}/process_openapi.py"
 
@@ -18,6 +19,7 @@ fi
 endpoints="endpoints"
 rewrite_dir="${endpoints}_openapi"
 input_file="rewrite_rules.conf"
+rpc_arguments_file="rpc_arguments.lua"
 temp_output_file=$(mktemp)
 
 # Default directories with fixed order if none provided
@@ -111,6 +113,13 @@ python3 "$PROCESS_OPENAPI" $OUTPUT $ENDPOINTS_IN_ORDER
 reverse_lines > "$temp_output_file"
 mv "$temp_output_file" "../$input_file"
 rm "$input_file"
+
+# The argument map the rewriter's hive.rpc_form module reads (Dockerfile.rewriter)
+if [[ ! -f "$rpc_arguments_file" ]]; then
+    echo "$PROCESS_OPENAPI wrote no $rpc_arguments_file: delete it to fetch the version at COMMON_CI_REF"
+    exit 1
+fi
+mv "$rpc_arguments_file" "../$rpc_arguments_file"
 
 # Move rewritten directory to root
 rm -rf "$SCRIPTDIR/../$rewrite_dir"

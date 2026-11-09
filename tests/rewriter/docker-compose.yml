@@ -1,0 +1,61 @@
+# HAF (PostgreSQL only) with nft_tracker installed over the API tests' mock data,
+# PostgREST serving it, the rewriter image in front and the pytest suite of this
+# directory, for run.sh. HAF_IMAGE, PSQL_IMAGE and REWRITER_IMAGE come from run.sh.
+services:
+  haf:
+    image: ${HAF_IMAGE:?}
+    command: ["--skip-hived"]
+    environment:
+      DATADIR: /home/hived/datadir
+      SHM_DIR: /home/hived/datadir/blockchain
+      PG_ACCESS: "host    all    all    0.0.0.0/0    trust"
+    healthcheck:
+      test: ["CMD-SHELL", "psql -h 127.0.0.1 -U haf_admin -d haf_block_log -Atc \"select 1 from pg_extension where extname = 'hive_fork_manager'\" | grep -qx 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 90
+
+  # One-shot: install the checkout's SQL, read as a tar archive on stdin (run.sh), from
+  # the psql image the app image is built on, then load and process the mock blocks
+  setup:
+    image: ${PSQL_IMAGE:?}
+    profiles: [setup]
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        set -e
+        mkdir /tmp/src && cd /tmp/src && tar -xf -
+        url=postgresql://haf_admin@haf:5432/haf_block_log
+        bash scripts/install_app.sh --postgres-url="$$url"
+        psql "$$url" -v ON_ERROR_STOP=1 -X -q -f tests/setup.sql -f tests/prelude.sql \
+          -f tests/api_tests/mock_data.sql -c 'CALL nfttracker_sync_blocks();'
+    depends_on:
+      haf:
+        condition: service_healthy
+
+  # The name the rewriter's nginx.conf proxies to
+  nft-tracker-postgrest:
+    image: registry.gitlab.syncad.com/hive/common-ci-configuration/mirrors/postgrest-postgrest-v12.0.2@sha256:58a897e8349f3b6a13810ae87751295841f7da1ce68e5f12a18948538fa49837
+    environment:
+      # As scripts/start_postgrest.sh configures it
+      PGRST_DB_URI: postgresql://nfttracker_owner@haf:5432/haf_block_log
+      PGRST_DB_SCHEMAS: nfttracker_endpoints
+      PGRST_DB_ANON_ROLE: nfttracker_user
+      PGRST_SERVER_PORT: "3000"
+    depends_on:
+      haf:
+        condition: service_healthy
+
+  rewriter:
+    image: ${REWRITER_IMAGE:?}
+    depends_on:
+      - nft-tracker-postgrest
+
+  tests:
+    build: .
+    profiles: [tests]
+    environment:
+      REWRITER_URL: http://rewriter:80
+      POSTGREST_URL: http://nft-tracker-postgrest:3000
+    depends_on:
+      - rewriter

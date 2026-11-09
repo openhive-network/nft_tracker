@@ -202,6 +202,33 @@ regression_tests:
   tags:
   - public-runner-docker
 
+# The rewriter image built above, in front of PostgREST and HAF (tests/rewriter/run.sh)
+rewriter_tests:
+  extends: .docker_image_builder_job_template
+  stage: test
+  timeout: 15 minutes
+  needs:
+  - build_images
+  variables:
+    RESULTS_DIR: "$CI_PROJECT_DIR/rewriter-results"
+  before_script:
+  - !reference [.docker_image_builder_job_template, before_script]
+  - |
+    echo -e "\e[0Ksection_start:$(date +%s):login[collapsed=true]\r\e[0KLogging to Docker registry..."
+    docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    echo -e "\e[0Ksection_end:$(date +%s):login\r\e[0K"
+  script:
+  - REWRITER_IMAGE="${CI_REGISTRY_IMAGE}/postgrest-rewriter:${CI_COMMIT_SHORT_SHA}" tests/rewriter/run.sh -v
+  artifacts:
+    when: always
+    paths:
+    - rewriter-results/
+    reports:
+      junit: rewriter-results/junit.xml
+    expire_in: 1 week
+  tags:
+  - public-runner-docker
+
 # Uses .docker_publish_job_template from common-ci-configuration.
 # The template re-tags images built with $CI_COMMIT_SHORT_SHA and pushes them
 # to both the GitLab registry and registry-upload.hive.blog on protected tags.
@@ -209,6 +236,7 @@ publish_images:
   extends: .docker_publish_job_template
   needs:
   - regression_tests
+  - rewriter_tests
   - build_images
   variables:
     PUBLISH_IMAGES: "nft_tracker postgrest-rewriter"
