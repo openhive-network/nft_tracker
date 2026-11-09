@@ -16,7 +16,10 @@
 #   - install         scripts/install_app.sh into the stack's haf_block_log
 #                     (NFTTRACKER_TEST_DB_HOST, default `haf`) through
 #                     install_with_app_lock.py (CI's install_app step); the context
-#                     and the version row must exist, and on a HAF with the
+#                     and the version row must exist, every function in
+#                     nfttracker_endpoints must be STABLE or IMMUTABLE and root()
+#                     must run as nfttracker_user READ ONLY
+#                     (.aidev/endpoint_volatility_check.sql), and on a HAF with the
 #                     application registry the context's only row is `nft_tracker`
 #   - regression      ./regress.sh, CI's regression_tests job: pg_regress over every
 #                     tests/regression/sql/test_*.sql, each in a fresh HAF database
@@ -154,6 +157,7 @@ check_installed() {
     local rows
     q -Atc "select hive.app_context_exists('$SCHEMA')" | grep -qx t || { echo "context $SCHEMA does not exist"; return 1; }
     echo "version: $(q -Atc "select git_hash from $SCHEMA.version")"
+    q -q -f .aidev/endpoint_volatility_check.sql || return 1
     if ! has_registry "$ADMIN_URL"; then
         echo "no HAF application registry (older than haf#341): registration not checked"
         return 0
