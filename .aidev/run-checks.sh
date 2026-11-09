@@ -13,9 +13,10 @@
 #                     scripts/install_app.sh (a file it misses never reaches a database)
 #   - ci-config       every script/before_script/after_script item of .gitlab-ci.yml
 #                     is a string (.aidev/ci_yaml_check.py); and, with GITLAB_TOKEN
-#                     set and gitlab.syncad.com reachable, GitLab's CI lint (a dry
-#                     run on aidev/integration, which also resolves the includes)
-#                     reports no error but the workflow:rules notice
+#                     set and GitLab's CI lint answering (a dry run on
+#                     aidev/integration, which also resolves the includes), it
+#                     reports no error but the workflow:rules notice; no answer
+#                     (a timeout, a refused connection, a 5xx) is a NOTE
 #   - stack-pins      the HAF test image of .aidev/test-stack.compose.yml is pinned as
 #                     hive/nft_tracker/haf-test:<HAF tag>-v2@sha256:<digest>, and that
 #                     tag and digest are in the registry (when it is reachable: the
@@ -115,25 +116,32 @@ sql_registered() {
 }
 
 ci_config() {
-    local py=python3 body rc=0 errors
+    local py=python3 body out errors
     python3 -c 'import yaml' 2>/dev/null || py=/python_venv/bin/python3
     "$py" .aidev/ci_yaml_check.py .gitlab-ci.yml || return 1
     # Only GitLab can resolve the includes (an `extends` of a template's job in a
-    # file not included); it needs the network and a token, so this part is optional.
+    # file not included); it needs the network and a token, so this part is optional,
+    # and only a lint answer fails the step: no answer says nothing of the config.
     if [ -z "${GITLAB_TOKEN:-}" ]; then
         echo "NOTE: GITLAB_TOKEN is not set: GitLab's CI lint is not run"
         return 0
     fi
     body="$(jq -n --rawfile c .gitlab-ci.yml '{content: $c, dry_run: true, ref: "aidev/integration"}')" || return 1
-    body="$(curl -fsS -X POST -H "PRIVATE-TOKEN: $GITLAB_TOKEN" -H 'Content-Type: application/json' \
-        --data "$body" "https://gitlab.syncad.com/api/v4/projects/hive%2Fnft_tracker/ci/lint")" || rc=$?
-    if [ "$rc" -eq 6 ] || [ "$rc" -eq 7 ]; then
-        echo "NOTE: gitlab.syncad.com is unreachable from here (curl exit $rc): GitLab's CI lint is not run"
+    out="$(mktemp)"
+    http_request "$out" -X POST -H "PRIVATE-TOKEN: $GITLAB_TOKEN" -H 'Content-Type: application/json' \
+        --data "$body" "https://gitlab.syncad.com/api/v4/projects/hive%2Fnft_tracker/ci/lint"
+    case "$http_cause:$http_status" in
+        :200|:400|:422) jq -e '.errors | type == "array"' "$out" >/dev/null 2>&1 || http_cause="HTTP $http_status without a lint answer" ;;
+        :*) http_cause="HTTP $http_status" ;;
+    esac
+    if [ -n "$http_cause" ]; then
+        echo "NOTE: GitLab's CI lint gave no answer ($http_cause): only the local check ran"
+        rm -f "$out"
         return 0
     fi
-    [ "$rc" -eq 0 ] || { echo "GitLab's CI lint request failed (curl exit $rc)"; return 1; }
     # A dry-run push on aidev/integration is skipped by the workflow rules.
-    errors="$(printf '%s' "$body" | jq -r '.errors[] | select(startswith("The pipeline did not run") | not)')" || return 1
+    errors="$(jq -r '.errors[] | select(startswith("The pipeline did not run") | not)' "$out")" || { rm -f "$out"; return 1; }
+    rm -f "$out"
     if [ -n "$errors" ]; then
         printf 'GitLab CI lint: %s\n' "$errors"
         return 1
@@ -161,41 +169,41 @@ stack_pins() {
     # the slots with the stack (which pull this image) check the registry. Only a
     # definite "not there" fails; a registry that does not answer says nothing of the pin.
     body="$(mktemp)"
-    registry_get "$body" "https://gitlab.syncad.com/jwt/auth?service=container_registry&scope=repository:$repo:pull"
-    if [ -n "$reg_cause" ] || [ "$reg_status" != 200 ]; then
-        echo "NOTE: no pull token from gitlab.syncad.com (${reg_cause:-HTTP $reg_status}): the pin's form is checked, its presence in the registry is not"
+    http_request "$body" "https://gitlab.syncad.com/jwt/auth?service=container_registry&scope=repository:$repo:pull"
+    if [ -n "$http_cause" ] || [ "$http_status" != 200 ]; then
+        echo "NOTE: no pull token from gitlab.syncad.com (${http_cause:-HTTP $http_status}): the pin's form is checked, its presence in the registry is not"
         rm -f "$body"
         return 0
     fi
     token="$(jq -er .token "$body")" || { echo "could not read a pull token for $repo"; rm -f "$body"; return 1; }
     rm -f "$body"
     for ref in "$tag" "$digest"; do
-        registry_get /dev/null -I -H "Authorization: Bearer $token" \
+        http_request /dev/null -I -H "Authorization: Bearer $token" \
             -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json' \
             "https://$registry/v2/$repo/manifests/$ref"
-        case "$reg_cause:$reg_status" in
+        case "$http_cause:$http_status" in
             :2??) echo "in the registry: $repo $ref" ;;
             :404|:401|:403)
-                echo "MISSING: $registry/$repo $ref is not in the registry (HTTP $reg_status): build and push it, then re-pin (.aidev/README.md)"
+                echo "MISSING: $registry/$repo $ref is not in the registry (HTTP $http_status): build and push it, then re-pin (.aidev/README.md)"
                 return 1 ;;
             *)
-                echo "NOTE: $registry gave no answer for $repo $ref (${reg_cause:-HTTP $reg_status}): the pin's form is checked, its presence in the registry is not"
+                echo "NOTE: $registry gave no answer for $repo $ref (${http_cause:-HTTP $http_status}): the pin's form is checked, its presence in the registry is not"
                 return 0 ;;
         esac
     done
 }
 
-# registry_get OUT CURL_ARGS...: the response body in OUT and its HTTP status in
-# reg_status; reg_cause names why there was no complete answer (a curl exit, or a
-# 5xx/429 the registry may answer differently on retry), empty when there was one.
-registry_get() {
+# http_request OUT CURL_ARGS...: the response body in OUT and its HTTP status in
+# http_status; http_cause names why there was no complete answer (a curl exit, or a
+# 5xx/429 the server may answer differently on retry), empty when there was one.
+http_request() {
     local out="$1" rc=0; shift
-    reg_status="$(curl -sS --connect-timeout 5 --max-time 30 -o "$out" -w '%{http_code}' "$@")" || rc=$?
-    reg_cause=""
+    http_status="$(curl -sS --connect-timeout 5 --max-time 30 -o "$out" -w '%{http_code}' "$@")" || rc=$?
+    http_cause=""
     if [ "$rc" -ne 0 ]; then
-        reg_cause="curl exit $rc"
-    elif [ "$reg_status" = 429 ] || [ "${reg_status#5}" != "$reg_status" ]; then
-        reg_cause="HTTP $reg_status"
+        http_cause="curl exit $rc"
+    elif [ "$http_status" = 429 ] || [ "${http_status#5}" != "$http_status" ]; then
+        http_cause="HTTP $http_status"
     fi
 }
 
