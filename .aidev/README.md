@@ -34,12 +34,42 @@ the failure body. `regression` also writes one case per pg_regress test
 that use them forward `localhost:5432` to the stack's HAF with `socat`; `./regress.sh`
 itself runs unchanged.
 
-| Slot | Steps | Stack |
+`full` and `canary` run a second suite, `rewriter`: `tests/rewriter/run.sh`, CI's
+`rewriter_tests`. It builds the rewriter image from `Dockerfile.rewriter` and starts
+its own compose stack (HAF with nft_tracker installed over `tests/api_tests/mock_data.sql`,
+PostgREST, the rewriter) to test operator-prefixed arguments (`not.`, `eq.`),
+PostgREST's own parameters and HEAD framing through `hive.rpc_form`. It writes
+`test-results/rewriter-<slot>/junit.xml`, one case per test, and the stack's log
+beside it.
+
+That suite drives Docker, which the runtime container has none of, so it is declared
+`docker: true` and AIDEV runs it on the host, with the worker's Docker daemon:
+
+- its compose project is the `aidev-dsuite-<token>` prefix AIDEV hands it as
+  `COMPOSE_PROJECT_NAME`, and AIDEV removes every project under that prefix when the
+  suite ends, as the host's sweep does for a killed run;
+- every container carries `testbed.env-container.owner=$AIDEV_ENV_CONTAINER_OWNER` and
+  is capped at `$AIDEV_ENV_CONTAINER_MEMORY_BYTES`;
+- it publishes no host port (the tests run in a container on the stack's network), so
+  the profile declares no `sandbox.dev` ports. Its `memory: 3g` prices the run: HAF's
+  PostgreSQL peaked under 1 GiB.
+
+On a host without a usable Docker daemon AIDEV reports the suite skipped
+(`docker_capability_unavailable`), and `default` decides the slot. Granting
+`docker: true` is a `sandbox`-class change: a gate runs it only on a maintainer's
+`--approve-sandbox-change`.
+
+| Suite | Runs | Where |
 |---|---|---|
-| quick | shellcheck, sql-registered, ci-config, stack-pins | no |
-| coverage | shellcheck, sql-registered | no |
-| full, canary | quick's plus install, regression, reinstall, uninstall, registry-old-name, sync, entry-dropped | yes |
-| baseline | install, regression | yes |
+| `default` | `.aidev/run-checks.sh <slot> <step>...` (the steps above) | the runtime container, on the test stack below when the slot has one |
+| `rewriter` | `tests/rewriter/run.sh` | the host, `docker: true`, its own compose stack |
+
+| Slot | Suites and steps | Stack |
+|---|---|---|
+| quick | `default`: shellcheck, sql-registered, ci-config, stack-pins | no |
+| coverage | `default`: shellcheck, sql-registered | no |
+| full, canary | `default`: quick's plus install, regression, reinstall, uninstall, registry-old-name, sync, entry-dropped; `rewriter` | yes (`default`); its own (`rewriter`) |
+| baseline | `default`: install, regression | yes |
 
 `static` and `system` are unbound: AIDEV runs neither for a project. Not bound either,
 and left to people: `tests/api_tests` (above) and the k6 `tests/performance`.

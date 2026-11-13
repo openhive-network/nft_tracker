@@ -80,6 +80,15 @@ sandbox:
 # throwaway databases. tests/api_tests (not run by CI, and stale
 # against the current endpoints) and tests/performance are not bound; see
 # .aidev/README.md.
+#
+# full and canary also run tests/rewriter (CI's rewriter_tests: the rewriter image
+# built from Dockerfile.rewriter in front of PostgREST and HAF) as a second suite,
+# `rewriter`. It drives docker compose itself, so it is `docker: true`: it runs
+# host-side, outside the runtime container, which has no Docker, under AIDEV's
+# aidev-dsuite-<token> compose prefix (COMPOSE_PROJECT_NAME). It publishes no host
+# port, so it needs no sandbox.dev.ports, and `memory:` prices it (a run peaked under
+# 1 GiB, HAF's PostgreSQL). On a host without Docker it is skipped as
+# docker_capability_unavailable and `default` decides the slot.
 verification:
   quick:
     adapter: command
@@ -87,17 +96,37 @@ verification:
     stack: false
     artifacts: ["test-results/quick/"]
   full:
-    adapter: command
-    args: [".aidev/run-checks.sh", "full", "shellcheck", "sql-registered", "ci-config", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
-    artifacts: ["test-results/full/"]
+    suites:
+      - name: default
+        adapter: command
+        args: [".aidev/run-checks.sh", "full", "shellcheck", "sql-registered", "ci-config", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
+        artifacts: ["test-results/full/"]
+      - name: rewriter
+        adapter: command
+        args: ["tests/rewriter/run.sh"]
+        env: {RESULTS_DIR: "test-results/rewriter-full"}
+        stack: false
+        docker: true
+        memory: 3g
+        artifacts: ["test-results/rewriter-full/"]
   baseline:
     adapter: command
     args: [".aidev/run-checks.sh", "baseline", "install", "regression"]
     artifacts: ["test-results/baseline/"]
   canary:
-    adapter: command
-    args: [".aidev/run-checks.sh", "canary", "shellcheck", "sql-registered", "ci-config", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
-    artifacts: ["test-results/canary/"]
+    suites:
+      - name: default
+        adapter: command
+        args: [".aidev/run-checks.sh", "canary", "shellcheck", "sql-registered", "ci-config", "stack-pins", "install", "regression", "reinstall", "uninstall", "registry-old-name", "sync", "entry-dropped"]
+        artifacts: ["test-results/canary/"]
+      - name: rewriter
+        adapter: command
+        args: ["tests/rewriter/run.sh"]
+        env: {RESULTS_DIR: "test-results/rewriter-canary"}
+        stack: false
+        docker: true
+        memory: 3g
+        artifacts: ["test-results/rewriter-canary/"]
   # There is no coverage measurement for SQL; `coverage` runs the stackless checks
   # (AIDEV runs it in the post-implementation scan only). `static` and `system`
   # are left unbound: AIDEV runs neither for a project.
