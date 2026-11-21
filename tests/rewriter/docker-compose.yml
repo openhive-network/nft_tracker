@@ -46,6 +46,14 @@ services:
       haf:
         condition: service_healthy
 
+  # Started by run.sh while the PostgREST is stopped for a recreate, to take the address
+  # the PostgREST had, as another app's container may when Docker reuses it
+  address-taker:
+    image: ${PSQL_IMAGE:?}
+    profiles: [recreate]
+    entrypoint: ["sleep", "3600"]
+    stop_signal: SIGKILL
+
   rewriter:
     image: ${REWRITER_IMAGE:?}
     depends_on:
@@ -57,5 +65,7 @@ services:
     environment:
       REWRITER_URL: http://rewriter:80
       POSTGREST_URL: http://nft-tracker-postgrest:3000
+      # Where the suite asks run.sh for a change of the stack (stack_requests.py)
+      STACK_REQUESTS: /tmp/stack-requests
     depends_on:
       - rewriter
