@@ -19,9 +19,16 @@ http {
         rpc_arguments = dofile(ngx.config.prefix() .. "conf/rpc_arguments.lua")
     }
 
+    # ${RESOLVER} will be replaced by the docker entrypoint script. With it and the
+    # variable proxy_pass below, nginx re-resolves the PostgREST's name as its answer
+    # expires instead of once at start, so a recreated PostgREST is reached again.
+    resolver ${RESOLVER} valid=10s;
+
     server {
             listen 0.0.0.0:80 default_server;
             server_name _;
+
+            set $postgrest_upstream http://nft-tracker-postgrest:3000;  # PostgREST endpoint
 
             location / {
                     include rewrite_rules.conf;
@@ -33,7 +40,8 @@ http {
                     rewrite_by_lua_block { rpc_form.forward(rpc_arguments) }
                     header_filter_by_lua_block { rpc_form.restore_head() }
 
-                    proxy_pass  http://nft-tracker-postgrest:3000;  # PostgREST endpoint
+                    # No URI part: the URI as rewrite_rules.conf and rpc_form left it is passed
+                    proxy_pass $postgrest_upstream;
 
                     proxy_set_header Host $host;
                     proxy_set_header X-Real-IP $remote_addr;

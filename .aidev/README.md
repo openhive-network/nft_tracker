@@ -38,7 +38,9 @@ itself runs unchanged.
 `rewriter_tests`. It builds the rewriter image from `Dockerfile.rewriter` and starts
 its own compose stack (HAF with nft_tracker installed over `tests/api_tests/mock_data.sql`,
 PostgREST, the rewriter) to test operator-prefixed arguments (`not.`, `eq.`),
-PostgREST's own parameters and HEAD framing through `hive.rpc_form`. It writes
+PostgREST's own parameters and HEAD framing through `hive.rpc_form`, and that the
+rewriter reaches a PostgREST recreated alone (`--no-deps --force-recreate`) again
+within 15 s without a restart. It writes
 `test-results/rewriter-<slot>/junit.xml`, one case per test, and the stack's log
 beside it.
 

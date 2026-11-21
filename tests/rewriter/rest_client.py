@@ -68,6 +68,16 @@ class Service:
             status, raw = err.code, err.read()
         return Answer(status, json.loads(raw) if raw.strip() else None)
 
+    def status(self, target: str) -> object:
+        """The status a GET of `target` answers (its body unread), or the OSError when there is no answer."""
+        try:
+            with urllib.request.urlopen(self.base + target, timeout=30) as resp:
+                return resp.status
+        except urllib.error.HTTPError as err:
+            return err.code
+        except OSError as err:
+            return err
+
     def in_turn(self, *requests: Tuple[str, str]) -> List[Raw]:
         """Send each (method, target) in turn on one keep-alive connection, reading each answer fully.
 

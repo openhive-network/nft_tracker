@@ -213,6 +213,7 @@ SWAGGER_URL       # default: localhost
 
 **Rewriter Tests** (`tests/rewriter/`):
 - The rewriter image in front of PostgREST and HAF over `tests/api_tests/mock_data.sql`; operator-prefixed arguments, PostgREST parameters, HEAD framing
+- The rewriter re-resolves `nft-tracker-postgrest` (`resolver ${RESOLVER} valid=10s` and a variable `proxy_pass`), so a PostgREST recreated alone is reached again; `test_upstream_recreate.py` asks `run.sh` to recreate it through `stack_requests.py`, since the suite's container has no Docker
 - Endpoint functions reached through the rewriter must stay STABLE: PostgREST runs a POST to a VOLATILE function READ WRITE
 
 **API Tests** (`tests/api_tests/`):
