@@ -22,11 +22,14 @@ http {
     # ${RESOLVER} will be replaced by the docker entrypoint script. With it and the
     # variable proxy_pass below, nginx re-resolves the PostgREST's name as its answer
     # expires instead of once at start, so a recreated PostgREST is reached again.
+    # A request after a recreate fails for at most valid plus proxy_connect_timeout
+    # (about 8.5 s). Docker's embedded DNS answers locally and each worker resolves
+    # once per expiry, not per request, so a short valid costs nothing measurable.
     # ipv6=off: PostgREST's default server-host (!4) listens on IPv4 only, so an AAAA
     # answer on a dual-stack network is an address nothing listens on. A Docker compose
     # network always has IPv4 unless enable_ipv4: false, which no stack running this
     # image uses.
-    resolver ${RESOLVER} valid=10s ipv6=off;
+    resolver ${RESOLVER} valid=5s ipv6=off;
 
     server {
             listen 0.0.0.0:80 default_server;
