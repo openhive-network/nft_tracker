@@ -22,7 +22,11 @@ http {
     # ${RESOLVER} will be replaced by the docker entrypoint script. With it and the
     # variable proxy_pass below, nginx re-resolves the PostgREST's name as its answer
     # expires instead of once at start, so a recreated PostgREST is reached again.
-    resolver ${RESOLVER} valid=10s;
+    # ipv6=off: PostgREST's default server-host (!4) listens on IPv4 only, so an AAAA
+    # answer on a dual-stack network is an address nothing listens on. A Docker compose
+    # network always has IPv4 unless enable_ipv4: false, which no stack running this
+    # image uses.
+    resolver ${RESOLVER} valid=10s ipv6=off;
 
     server {
             listen 0.0.0.0:80 default_server;
@@ -42,6 +46,10 @@ http {
 
                     # No URI part: the URI as rewrite_rules.conf and rpc_form left it is passed
                     proxy_pass $postgrest_upstream;
+                    # A connect on a Docker network takes well under a millisecond, so one
+                    # to the address of a PostgREST that is gone fails fast and a later
+                    # request re-resolves, instead of waiting nginx's default 60s
+                    proxy_connect_timeout 3s;
 
                     proxy_set_header Host $host;
                     proxy_set_header X-Real-IP $remote_addr;
